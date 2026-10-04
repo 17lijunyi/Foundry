@@ -13,5 +13,15 @@
     "specifyWorkspace": "Выбрать папку проекта",
     "searchPlaceholder": "Поиск проектов…",
     "noProject": "Без проекта"
+  },
+  "glass": {
+    "workspace": "Рабочее пространство",
+    "subtitle": "Воплощайте идеи вместе с ИИ-помощниками.",
+    "searchAssistants": "Поиск помощников…",
+    "noAssistants": "Подходящие помощники не найдены",
+    "navigation": "Основная навигация",
+    "quickActions": "Быстрые действия",
+    "inputTitle": "Над чем поработаем сегодня?",
+    "chooseAssistant": "Выберите ассистента"
   }
 }

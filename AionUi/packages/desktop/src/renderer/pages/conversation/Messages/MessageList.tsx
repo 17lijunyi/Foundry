@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
 import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { useMotion } from '@/renderer/hooks/ui/useMotion';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getChatSurfaceWidthClass } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { iconColors } from '@/renderer/styles/colors';
@@ -353,6 +355,55 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const loadingTargetKeyRef = useRef<string>('');
   const scrollerElementRef = useRef<HTMLDivElement | null>(null);
   const contentElementRef = useRef<HTMLDivElement | null>(null);
+  const { animate, cancel } = useMotion();
+  const committedMessagesRef = useRef(list);
+  const incomingUserMessagesRef = useRef(new Set<string>());
+
+  // Only a server-confirmed creation can start the handoff. Loading a history
+  // page or replacing a streamed message must never replay entry animations.
+  useEffect(() => {
+    const conversationId = conversationContext?.conversation_id;
+    incomingUserMessagesRef.current.clear();
+    if (!conversationId) return;
+
+    const unsubscribe = ipcBridge.conversation.userCreated.on((payload) => {
+      if (
+        payload.conversation_id !== conversationId ||
+        payload.position !== 'right' ||
+        payload.hidden ||
+        committedMessagesRef.current.some(
+          (message) => message.msg_id === payload.msg_id || message.id === payload.msg_id
+        )
+      ) {
+        return;
+      }
+      incomingUserMessagesRef.current.add(payload.msg_id);
+    });
+    return () => {
+      unsubscribe();
+      incomingUserMessagesRef.current.clear();
+      cancel();
+    };
+  }, [cancel, conversationContext?.conversation_id]);
+
+  useEffect(() => {
+    committedMessagesRef.current = list;
+    for (const message of list) {
+      const messageId = message.msg_id || message.id;
+      if (!incomingUserMessagesRef.current.has(messageId)) continue;
+      incomingUserMessagesRef.current.delete(messageId);
+      if (message.type !== 'text' || message.position !== 'right' || message.hidden || message.status === 'error')
+        continue;
+
+      const element = document.getElementById(`message-${message.id}`);
+      if (element && contentElementRef.current?.contains(element)) {
+        animate(element, [
+          { opacity: 0.35, transform: 'translateY(18px) scale(0.985)' },
+          { opacity: 1, transform: 'translateY(0) scale(1)' },
+        ]);
+      }
+    }
+  }, [animate, list]);
 
   // Pre-process message list to group tool outputs into summary cards
   const processedList = useMemo(() => {

@@ -2,7 +2,7 @@ import type { BadgeProps } from '@arco-design/web-react';
 import { Badge, Button, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
 import { Checklist, Download, Right } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import { getAcpImageFileName } from '@/common/chat/acpToolCallOutput';
@@ -10,7 +10,9 @@ import type { NormalizedToolCall, NormalizedToolStatus, ToolMessage } from '@/co
 import { normalizeToolMessages, hasRunningToolMessages } from '@/common/chat/normalizeToolCall';
 import LocalImageView from '@/renderer/components/media/LocalImageView';
 import { downloadFileFromPath } from '@/renderer/utils/file/download';
+import { useMotion } from '@/renderer/hooks/ui/useMotion';
 import './MessageToolGroupSummary.css';
+import processStyles from './MessageThinking.module.css';
 
 const statusToBadge = (status: NormalizedToolStatus): BadgeProps['status'] => {
   switch (status) {
@@ -141,33 +143,73 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
 };
 
 const MessageToolGroupSummary: React.FC<{ messages: ToolMessage[] }> = ({ messages }) => {
+  const { t } = useTranslation();
   const hasRunning = hasRunningToolMessages(messages);
   const [showMore, setShowMore] = useState(hasRunning);
+  const [hasShown, setHasShown] = useState(hasRunning);
+  const wasRunningRef = useRef(hasRunning);
+  const summaryRef = useRef<HTMLSpanElement>(null);
+  const bodyId = useId();
+  const { animate } = useMotion();
+  const tools = useMemo(() => normalizeToolMessages(messages), [messages]);
 
   useEffect(() => {
-    if (hasRunning) setShowMore(true);
-  }, [hasRunning]);
-
-  const tools = useMemo(() => normalizeToolMessages(messages), [messages]);
+    if (hasRunning && !wasRunningRef.current) {
+      setShowMore(true);
+      setHasShown(true);
+    } else if (
+      !hasRunning &&
+      wasRunningRef.current &&
+      tools.length > 0 &&
+      tools.every((item) => item.status === 'completed')
+    ) {
+      setShowMore(false);
+      animate(summaryRef.current, [
+        { opacity: 0.5, transform: 'translateY(4px)' },
+        { opacity: 1, transform: 'translateY(0)' },
+      ]);
+    }
+    wasRunningRef.current = hasRunning;
+  }, [animate, hasRunning, tools]);
 
   return (
     <div className='tool-group-summary'>
-      <div className='tool-group-summary__header' onClick={() => setShowMore(!showMore)}>
+      <Button
+        type='text'
+        className={`${processStyles.header} tool-group-summary__header`}
+        aria-expanded={showMore}
+        aria-controls={bodyId}
+        onClick={() => {
+          setHasShown(true);
+          setShowMore((value) => !value);
+        }}
+      >
         <span className='tool-group-summary__icon'>
           {hasRunning ? <Spin size={12} /> : <Checklist theme='outline' size='14' />}
         </span>
-        <span className='tool-group-summary__label'>View Steps {tools.length > 0 ? `· ${tools.length}` : ''}</span>
-        <span className={`tool-group-summary__arrow${showMore ? ' tool-group-summary__arrow--open' : ''}`}>
+        <span ref={summaryRef} className='tool-group-summary__label'>
+          {t('messages.viewSteps', { defaultValue: 'View Steps' })} {tools.length > 0 ? `· ${tools.length}` : ''}
+        </span>
+        <span className={`${processStyles.arrow} ${showMore ? processStyles.arrowExpanded : ''}`}>
           <Right theme='outline' size='12' />
         </span>
-      </div>
-      {showMore && (
-        <div className='tool-group-summary__body'>
-          {tools.map((item) => (
-            <ToolItemDetail key={item.key} item={item} />
-          ))}
+      </Button>
+      <div
+        id={bodyId}
+        aria-hidden={!showMore}
+        inert={!showMore}
+        className={`${processStyles.bodyViewport} ${!showMore ? processStyles.collapsed : ''}`}
+      >
+        <div className={processStyles.bodyClip}>
+          {hasShown && (
+            <div className='tool-group-summary__body'>
+              {tools.map((item) => (
+                <ToolItemDetail key={item.key} item={item} />
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

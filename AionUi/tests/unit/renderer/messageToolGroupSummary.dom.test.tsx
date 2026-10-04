@@ -1,10 +1,12 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { ToolMessage } from '@/common/chat/normalizeToolCall';
 import MessageToolGroupSummary from '@/renderer/pages/conversation/Messages/components/MessageToolGroupSummary';
+const animateMock = vi.hoisted(() => vi.fn());
+vi.mock('@/renderer/hooks/ui/useMotion', () => ({ useMotion: () => ({ animate: animateMock }) }));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -17,6 +19,37 @@ vi.mock('@/common', () => ({
 }));
 
 describe('MessageToolGroupSummary', () => {
+  beforeEach(() => animateMock.mockClear());
+
+  const toolMessage = (status: string): ToolMessage =>
+    ({
+      id: 'tool-1',
+      conversation_id: 'conversation-1',
+      type: 'acp_tool_call',
+      content: { update: { tool_call_id: 'tool-1', status, title: 'Read requirements', kind: 'read' } },
+    }) as ToolMessage;
+
+  it('folds successful steps once and preserves a manually reopened group', () => {
+    const { rerender } = render(<MessageToolGroupSummary messages={[toolMessage('in_progress')]} />);
+    rerender(<MessageToolGroupSummary messages={[toolMessage('completed')]} />);
+    expect(screen.getByRole('button', { name: /View Steps/ })).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(screen.getByRole('button', { name: /View Steps/ }));
+    rerender(<MessageToolGroupSummary messages={[toolMessage('completed')]} />);
+    expect(screen.getByRole('button', { name: /View Steps/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(animateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps failed steps open instead of hiding their outcome', () => {
+    const { rerender } = render(<MessageToolGroupSummary messages={[toolMessage('in_progress')]} />);
+    rerender(<MessageToolGroupSummary messages={[toolMessage('failed')]} />);
+    expect(screen.getByRole('button', { name: /View Steps/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(animateMock).not.toHaveBeenCalled();
+  });
+
+  it('does not replay the completion of historical tool groups', () => {
+    render(<MessageToolGroupSummary messages={[toolMessage('completed')]} />);
+    expect(animateMock).not.toHaveBeenCalled();
+  });
   it('loads full tool content when expanding a compact history item', async () => {
     const invoke = vi.mocked(ipcBridge.database.getConversationMessage.invoke);
     invoke.mockResolvedValue({

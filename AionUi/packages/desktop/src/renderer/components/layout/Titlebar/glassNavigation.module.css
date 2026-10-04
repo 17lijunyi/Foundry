@@ -1,0 +1,136 @@
+.rail,
+.dock {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--glass-edge);
+  background: var(--glass-floating);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+}
+
+.rail {
+  left: clamp(18px, 3vw, 64px);
+  top: 50%;
+  transform: translateY(-50%);
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 7px;
+  border-radius: 34px;
+}
+
+.railButton:global(.arco-btn) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  background: transparent;
+  transition:
+    background 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.railButton:global(.arco-btn):hover,
+.railButton[aria-current='page'] {
+  color: var(--text-primary);
+  background: var(--glass-selected);
+  box-shadow:
+    var(--glass-inset),
+    0 3px 12px var(--glass-shade);
+}
+
+.railButton:global(.arco-btn):active {
+  transform: scale(0.93);
+}
+
+.divider {
+  height: 1px;
+  width: 22px;
+  margin: 3px 0;
+  background: var(--glass-line);
+}
+
+.dock {
+  bottom: 32px;
+  left: calc(50% + 32px);
+  transform: translateX(-50%);
+  height: 64px;
+  gap: 12px;
+  padding: 8px 15px 8px 10px;
+  border-radius: 36px;
+  min-width: 420px;
+  max-width: calc(100% - 48px);
+  box-sizing: border-box;
+}
+
+.brandIcon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: block;
+  object-fit: contain;
+}
+
+.dockIdentity {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.dockIdentity strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.dockIdentity > span {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.dockDivider {
+  height: 25px;
+  width: 1px;
+  background: var(--glass-line);
+  margin: 0 6px;
+}
+
+.newConversation:global(.arco-btn) {
+  height: 39px;
+  padding: 0 16px;
+  border-radius: 24px;
+  background: var(--glass-selected);
+  color: var(--text-primary);
+  box-shadow: var(--glass-inset);
+  font-size: 12px;
+}
+
+@media (max-width: 1050px) {
+  .rail {
+    left: 14px;
+  }
+  .dock {
+    bottom: 20px;
+    height: 58px;
+  }
+}
+
+@media (max-width: 767px) {
+  .rail,
+  .dock {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .railButton:global(.arco-btn) {
+    transition: none;
+  }
+}

@@ -16,11 +16,20 @@ import {
   useUpdateMessageList,
 } from '@/renderer/pages/conversation/Messages/hooks';
 import MessageList from '@/renderer/pages/conversation/Messages/MessageList';
+import { ipcBridge } from '@/common';
 
-const { parseDiffMock, useTeamPermissionMock } = vi.hoisted(() => ({
+const { parseDiffMock, useTeamPermissionMock, animateMock, cancelMotionMock } = vi.hoisted(() => ({
   parseDiffMock: vi.fn(),
   useTeamPermissionMock: vi.fn(),
+  animateMock: vi.fn(),
+  cancelMotionMock: vi.fn(),
 }));
+
+vi.mock('@/renderer/hooks/ui/useMotion', () => ({
+  useMotion: () => ({ animate: animateMock, cancel: cancelMotionMock }),
+}));
+
+let onUserCreated: Parameters<typeof ipcBridge.conversation.userCreated.on>[0];
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -262,6 +271,71 @@ describe('MessageList', () => {
       diff: 'diff',
     });
     useTeamPermissionMock.mockReturnValue(null);
+    animateMock.mockClear();
+    vi.spyOn(ipcBridge.conversation.userCreated, 'on').mockImplementation((listener) => {
+      onUserCreated = listener;
+      return () => {};
+    });
+  });
+
+  it('hands a confirmed user message into the transcript once without replaying streamed updates', () => {
+    const user: IMessageText = { ...createTextMessage(), id: 'user-new', msg_id: 'user-new', position: 'right' };
+    render(
+      <Wrapper>
+        <MessageList />
+        <ReplaceMessagesButton messages={[createTextMessage(), user]} />
+      </Wrapper>
+    );
+    onUserCreated({
+      conversation_id: 'conversation-1',
+      msg_id: 'user-new',
+      content: 'sent',
+      position: 'right',
+      status: 'finish',
+      hidden: false,
+      created_at: 2,
+    });
+    fireEvent.click(screen.getByText('replace messages'));
+    expect(animateMock).toHaveBeenCalledTimes(1);
+    expect(animateMock.mock.calls[0][0]).toBe(screen.getByTestId('message-text-right'));
+
+    onUserCreated({
+      conversation_id: 'conversation-1',
+      msg_id: 'user-new',
+      content: 'sent',
+      position: 'right',
+      status: 'finish',
+      hidden: false,
+      created_at: 2,
+    });
+    fireEvent.click(screen.getByText('replace messages'));
+    expect(animateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not animate history, failed sends, or messages confirmed for another conversation', () => {
+    const user: IMessageText = {
+      ...createTextMessage(),
+      id: 'user-history',
+      msg_id: 'user-history',
+      position: 'right',
+    };
+    render(
+      <Wrapper>
+        <MessageList />
+        <ReplaceMessagesButton messages={[user]} />
+      </Wrapper>
+    );
+    onUserCreated({
+      conversation_id: 'another-conversation',
+      msg_id: 'user-history',
+      content: 'sent',
+      position: 'right',
+      status: 'finish',
+      hidden: false,
+      created_at: 2,
+    });
+    fireEvent.click(screen.getByText('replace messages'));
+    expect(animateMock).not.toHaveBeenCalled();
   });
 
   it('never renders a plan as a stream row (it belongs to ConversationPlanBar)', () => {

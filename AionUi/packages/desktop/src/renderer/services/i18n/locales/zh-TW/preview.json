@@ -176,5 +176,17 @@
   "zoomIn": "放大",
   "zoomOut": "縮小",
   "zoomReset": "重設視圖",
-  "diagramZoomHint": "滾輪縮放 • 拖曳平移 • ESC 關閉"
+  "diagramZoomHint": "滾輪縮放 • 拖曳平移 • ESC 關閉",
+  "revisionReview": {
+    "review": "對照修改",
+    "title": "改寫對照",
+    "before": "原文",
+    "after": "修改後的草稿",
+    "adopt": "採納並儲存",
+    "saved": "修改已儲存",
+    "undo": "還原原文至草稿",
+    "undoHint": "將原文還原為未儲存草稿，不會覆寫磁碟上的檔案。",
+    "draftHint": "先對照，再採納。儲存失敗時會保留草稿。",
+    "empty": "空白文件"
+  }
 }

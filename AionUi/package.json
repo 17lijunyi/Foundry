@@ -268,5 +268,5 @@
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
   },
-  "productName": "产品经理工作台"
+  "productName": "Foundry"
 }

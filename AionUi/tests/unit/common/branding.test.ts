@@ -7,16 +7,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   APP_DISPLAY_NAME,
-  APP_MONOGRAM,
+  APP_DATA_DIRECTORY,
   BUTLER_DISPLAY_NAME,
   UPSTREAM_UPDATE_ENABLED,
   brandLocaleResource,
   replaceUpstreamBrand,
 } from '@/common/branding';
 
-describe('product-manager workbench branding', () => {
-  it('uses the PM monogram for compact brand surfaces', () => {
-    expect(APP_MONOGRAM).toBe('PM');
+describe('Foundry branding', () => {
+  it('renames the product while retaining its existing storage identity', () => {
+    expect(APP_DISPLAY_NAME).toBe('Foundry');
+    expect(APP_DATA_DIRECTORY).toBe('产品经理工作台');
   });
 
   it('does not let the custom build install upstream releases', () => {

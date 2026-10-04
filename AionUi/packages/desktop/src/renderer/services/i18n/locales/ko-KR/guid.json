@@ -13,5 +13,15 @@
     "specifyWorkspace": "프로젝트 폴더 선택",
     "searchPlaceholder": "프로젝트 검색…",
     "noProject": "프로젝트 없음"
+  },
+  "glass": {
+    "workspace": "작업 공간",
+    "subtitle": "AI 어시스턴트와 함께 아이디어를 현실로.",
+    "searchAssistants": "어시스턴트 검색…",
+    "noAssistants": "일치하는 어시스턴트가 없습니다",
+    "navigation": "기본 탐색",
+    "quickActions": "작업 공간 바로가기",
+    "inputTitle": "오늘은 어떤 일을 해볼까요?",
+    "chooseAssistant": "어시스턴트 선택"
   }
 }

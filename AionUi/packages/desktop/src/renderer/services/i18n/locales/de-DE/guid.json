@@ -31,5 +31,15 @@
     "statusTesting": "Latenz wird gemessen...",
     "statusUnreachable": "Nicht erreichbar",
     "statusAvailable": "Verfügbar"
+  },
+  "glass": {
+    "workspace": "Arbeitsbereich",
+    "subtitle": "Mit KI-Assistenten werden Ideen Wirklichkeit.",
+    "searchAssistants": "Assistenten suchen…",
+    "noAssistants": "Keine passenden Assistenten",
+    "navigation": "Hauptnavigation",
+    "quickActions": "Arbeitsbereich-Schnellzugriffe",
+    "inputTitle": "Woran möchtest du heute arbeiten?",
+    "chooseAssistant": "Assistenten auswählen"
   }
 }

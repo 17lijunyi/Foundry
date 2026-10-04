@@ -101,5 +101,6 @@
   "requestDetails": "Детали запроса:",
   "delivery": {
     "pending": "Непрочитано"
-  }
+  },
+  "viewSteps": "Показать шаги"
 }

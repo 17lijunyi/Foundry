@@ -5,7 +5,8 @@
  */
 
 import { Close } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useMotion } from '@/renderer/hooks/ui/useMotion';
 import { useTranslation } from 'react-i18next';
 import { formatByteSize } from '@/renderer/services/i18n/format';
 import { getFileExtension } from '@/renderer/services/FileService';
@@ -49,13 +50,23 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
   const { i18n } = useTranslation();
   const [imageUrl, setImageUrl] = useState<string>('');
   const [fileSize, setFileSize] = useState<string>('');
+  const chipRef = useRef<HTMLDivElement>(null);
+  const { animate } = useMotion();
 
   useEffect(() => {
+    let cancelled = false;
     // 获取文件大小
     ipcBridge.fs.getFileMetadata
       .invoke({ path })
       .then((metadata) => {
+        if (cancelled) return;
         setFileSize(formatByteSize(metadata.size, i18n.language));
+        if (!readonly) {
+          animate(chipRef.current, [
+            { opacity: 0.4, transform: 'translateY(12px) scale(.94)' },
+            { opacity: 1, transform: 'translateY(0) scale(1)' },
+          ]);
+        }
       })
       .catch((error) => {
         console.error('[FilePreview] Failed to get file metadata:', { path, error });
@@ -65,7 +76,6 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
     // Retry when the file is not found yet (race condition: display message rendered
     // before the backend finishes copying the pasted image to the workspace).
     if (isImage) {
-      let cancelled = false;
       let retryCount = 0;
       let retryTimer: ReturnType<typeof setTimeout>;
 
@@ -99,8 +109,10 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
       };
     }
 
-    return undefined;
-  }, [isImage, path]);
+    return () => {
+      cancelled = true;
+    };
+  }, [animate, isImage, path, readonly]);
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -111,7 +123,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
 
   if (isImage) {
     return withHint(
-      <div className='relative inline-block'>
+      <div ref={chipRef} className='relative inline-block'>
         <div className='rd-8px overflow-hidden border-1 border-solid b-color-border-2'>
           <Image
             src={imageUrl}
@@ -137,7 +149,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
   }
 
   return withHint(
-    <div className='relative inline-block mb-10px'>
+    <div ref={chipRef} className='relative inline-block mb-10px'>
       <div
         className='h-60px flex items-center gap-12px px-12px rd-8px bg-bg-2 border border-solid'
         style={{ borderColor: 'var(--border-base)', boxShadow: '0 0 0 1px rgba(0,0,0,0.02)' }}

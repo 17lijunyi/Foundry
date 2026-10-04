@@ -13,5 +13,15 @@
     "specifyWorkspace": "プロジェクトフォルダを選択",
     "searchPlaceholder": "プロジェクトを検索…",
     "noProject": "プロジェクトなし"
+  },
+  "glass": {
+    "workspace": "ワークスペース",
+    "subtitle": "AI アシスタントと、アイデアを形に。",
+    "searchAssistants": "アシスタントを検索…",
+    "noAssistants": "一致するアシスタントがありません",
+    "navigation": "メインナビゲーション",
+    "quickActions": "ワークスペースのショートカット",
+    "inputTitle": "今日は何を進めましょうか？",
+    "chooseAssistant": "アシスタントを選択"
   }
 }

@@ -13,5 +13,15 @@
     "specifyWorkspace": "Sélectionnez le dossier du projet",
     "searchPlaceholder": "Rechercher des projets…",
     "noProject": "Aucun projet"
+  },
+  "glass": {
+    "workspace": "Espace de travail",
+    "subtitle": "Donnez vie à vos idées avec vos assistants IA.",
+    "searchAssistants": "Rechercher un assistant…",
+    "noAssistants": "Aucun assistant correspondant",
+    "navigation": "Navigation principale",
+    "quickActions": "Raccourcis de travail",
+    "inputTitle": "Sur quoi souhaitez-vous travailler aujourd’hui ?",
+    "chooseAssistant": "Choisir un assistant"
   }
 }

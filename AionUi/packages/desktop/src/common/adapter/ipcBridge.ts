@@ -1479,6 +1479,11 @@ export const deepLink = {
 // ---------------------------------------------------------------------------
 
 export const windowControls = {
+  updateGlass: bridge.buildProvider<
+    boolean,
+    { regions: Array<{ x: number; y: number; width: number; height: number; radius: number }>; dark: boolean }
+  >('window-controls:update-glass'),
+  setPointerPassthrough: bridge.buildProvider<void, boolean>('window-controls:pointer-passthrough'),
   minimize: bridge.buildProvider<void, void>('window-controls:minimize'),
   maximize: bridge.buildProvider<void, void>('window-controls:maximize'),
   unmaximize: bridge.buildProvider<void, void>('window-controls:unmaximize'),

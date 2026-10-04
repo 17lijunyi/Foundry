@@ -40,6 +40,7 @@ import PDFPreview from '../viewers/PDFViewer';
 import OfficeDocPreview from '../viewers/OfficeDocViewer';
 import PptViewer from '../viewers/PptViewer';
 import CodeEditor from '../editors/CodeEditor';
+import RevisionReview from '../RevisionReview';
 import URLViewer from '../viewers/URLViewer';
 import BrowserTabLayer from '../../browser/BrowserTabLayer';
 import { MAX_BROWSER_TABS } from '../../browser/constants';
@@ -165,7 +166,7 @@ const PreviewPanel: React.FC = () => {
    * `saveContent` only clears the dirty flag on success, so the tab correctly
    * stays dirty here; all this has to do is say so out loud.
    */
-  const handleSaveActiveTab = useCallback(async () => {
+  const handleSaveActiveTab = useCallback(async (): Promise<boolean> => {
     let result: boolean | undefined;
     let thrown: unknown;
     try {
@@ -175,14 +176,15 @@ const PreviewPanel: React.FC = () => {
     }
 
     const outcome = classifySaveOutcome(result, thrown);
-    if (outcome.kind === 'saved') return;
+    if (outcome.kind === 'saved') return true;
     if (outcome.kind === 'conflict') {
       // The file moved under us. Name that specifically and leave the tab dirty so
       // the edit is still there to retry or copy out.
       messageApi.error(t('preview.saveConflict'));
-      return;
+      return false;
     }
     messageApi.error(outcome.detail ? `${t('common.saveFailed')}: ${outcome.detail}` : t('common.saveFailed'));
+    return false;
   }, [saveContent, messageApi, t]);
 
   /**
@@ -1267,8 +1269,27 @@ const PreviewPanel: React.FC = () => {
           />
         )}
 
-        {/* 预览内容 / Preview content */}
-        {renderContent()}
+        {isEditable &&
+          metadata?.fileRef &&
+          !metadata.oversized &&
+          !metadata.missingFile &&
+          (EDITABLE_CONTENT_TYPES as readonly string[]).includes(content_type) && (
+            <RevisionReview
+              key={`${activeTab.id}:${JSON.stringify(metadata.fileRef)}`}
+              original={activeTab.originalContent ?? content}
+              draft={content}
+              dirty={Boolean(activeTab.isDirty)}
+              onAdopt={handleSaveActiveTab}
+              onRestoreDraft={updateContent}
+            />
+          )}
+
+        {/* Animate inner content only; the native glass bounds remain stable. */}
+        {content_type !== 'browser' && (
+          <div className='flex flex-col flex-1 min-h-0 overflow-hidden' data-foundry-preview-content>
+            {renderContent()}
+          </div>
+        )}
 
         {/* 浏览器层：常驻挂载，切 tab 不重新加载页面
             Browser layer: always mounted so tab switches don't reload pages */}

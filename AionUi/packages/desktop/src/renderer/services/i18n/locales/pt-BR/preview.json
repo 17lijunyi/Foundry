@@ -176,5 +176,17 @@
   "zoomIn": "Ampliar",
   "zoomOut": "Reduzir",
   "zoomReset": "Redefinir visualização",
-  "diagramZoomHint": "Role para ampliar • Arraste para mover • ESC para fechar"
+  "diagramZoomHint": "Role para ampliar • Arraste para mover • ESC para fechar",
+  "revisionReview": {
+    "review": "Comparar alterações",
+    "title": "Comparação de versões",
+    "before": "Original",
+    "after": "Rascunho revisado",
+    "adopt": "Aplicar e salvar",
+    "saved": "Alterações salvas",
+    "undo": "Restaurar original como rascunho",
+    "undoHint": "Restaura o original como rascunho não salvo, sem sobrescrever o arquivo no disco.",
+    "draftHint": "Compare antes de aplicar. O rascunho é mantido se houver falha ao salvar.",
+    "empty": "Documento vazio"
+  }
 }

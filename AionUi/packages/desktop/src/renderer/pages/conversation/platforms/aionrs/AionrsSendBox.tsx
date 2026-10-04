@@ -437,11 +437,12 @@ const AionrsSendBox: React.FC<{
     // `@@` references must ride along, and must be released from the send box
     // the same way the draft text is — otherwise they leak into whatever the
     // user sends next.
-    enqueue({
+    const queued = enqueue({
       input: content,
       files: filesToSend,
       sessions: selectedSessions.length > 0 ? selectedSessions : undefined,
     });
+    if (!queued) return;
     setContent('');
     clearFiles();
     setSelectedSessions([]);
@@ -740,6 +741,7 @@ const AionrsSendBox: React.FC<{
   return (
     <div className={`${sendBoxWidthClass} flex flex-col mt-auto mb-16px`}>
       <CommandQueuePanel
+        key={conversation_id}
         items={queuedCommands}
         mode={queueMode}
         isMobile={isMobile}

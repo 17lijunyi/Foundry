@@ -13,5 +13,15 @@
     "specifyWorkspace": "Proje klasörü seç",
     "searchPlaceholder": "Proje ara…",
     "noProject": "Proje Yok"
+  },
+  "glass": {
+    "workspace": "Çalışma alanı",
+    "subtitle": "AI asistanlarınızla fikirlerinizi hayata geçirin.",
+    "searchAssistants": "Asistan ara…",
+    "noAssistants": "Eşleşen asistan yok",
+    "navigation": "Ana gezinme",
+    "quickActions": "Çalışma alanı kısayolları",
+    "inputTitle": "Bugün ne üzerinde çalışmak istersiniz?",
+    "chooseAssistant": "Bir asistan seçin"
   }
 }

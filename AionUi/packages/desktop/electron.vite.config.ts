@@ -1,5 +1,5 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
@@ -97,6 +97,12 @@ export default defineConfig(({ mode }) => {
   return {
     main: {
       plugins: [
+        {
+          name: 'build-native-glass',
+          closeBundle() {
+            execFileSync(process.execPath, [resolve(__dirname, 'native/build.mjs')], { stdio: 'inherit' });
+          },
+        },
         // externalizeDepsPlugin replaces our custom getExternalDeps() + pluginExternalizeDynamicImports.
         // 'fix-path' excluded so it gets bundled inline (only 3KB).
         // '@aionui/web-host' excluded so its TS sources (which use ESM ".js" import specifiers)

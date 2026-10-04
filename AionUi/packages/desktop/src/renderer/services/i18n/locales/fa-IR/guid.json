@@ -13,5 +13,15 @@
     "specifyWorkspace": "انتخاب پوشه پروژه",
     "searchPlaceholder": "جستجوی پروژه‌ها…",
     "noProject": "بدون پروژه"
+  },
+  "glass": {
+    "workspace": "فضای کار",
+    "subtitle": "با دستیارهای هوش مصنوعی ایده‌ها را عملی کنید.",
+    "searchAssistants": "جستجوی دستیار…",
+    "noAssistants": "دستیار مطابقی یافت نشد",
+    "navigation": "ناوبری اصلی",
+    "quickActions": "میان‌برهای فضای کار",
+    "inputTitle": "امروز می‌خواهید روی چه چیزی کار کنید؟",
+    "chooseAssistant": "انتخاب دستیار"
   }
 }

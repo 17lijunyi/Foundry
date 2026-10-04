@@ -31,9 +31,10 @@ export const useDiffPreviewHandlers = ({ diffText, display_name, file_path, titl
   const { launchPreview } = usePreviewLauncher();
 
   const handleFileClick = useCallback(
-    (_file: FileChangeItem) => {
+    (_file: FileChangeItem, motionSource?: HTMLElement) => {
       const { contentType, editable, language } = getFileTypeInfo(display_name);
       void launchPreview({
+        motionSource,
         relativePath: file_path || display_name,
         file_name: display_name,
         title,
@@ -48,8 +49,9 @@ export const useDiffPreviewHandlers = ({ diffText, display_name, file_path, titl
   );
 
   const handleDiffClick = useCallback(
-    (_file: FileChangeItem) => {
+    (_file: FileChangeItem, motionSource?: HTMLElement) => {
       void launchPreview({
+        motionSource,
         file_name: display_name,
         title,
         contentType: 'diff',

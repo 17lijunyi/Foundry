@@ -8,6 +8,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { BrowserWindow } from 'electron';
 
 const hide = vi.fn();
 const close = vi.fn();
@@ -17,6 +18,7 @@ const unmaximize = vi.fn();
 const isMaximized = vi.fn(() => false);
 const isDestroyed = vi.fn(() => false);
 const on = vi.fn();
+const setIgnoreMouseEvents = vi.fn();
 
 const mockWindow = {
   hide,
@@ -27,6 +29,8 @@ const mockWindow = {
   isMaximized,
   isDestroyed,
   on,
+  once: vi.fn(),
+  setIgnoreMouseEvents,
 };
 
 const getFocusedWindow = vi.fn(() => mockWindow);
@@ -50,10 +54,13 @@ vi.mock('@process/utils/tray', () => ({
 
 type ProviderFn = () => Promise<void> | void;
 const providers: Record<string, ProviderFn> = {};
+let passthroughProvider: (ignore: boolean) => Promise<void>;
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     windowControls: {
+      updateGlass: { provider: vi.fn() },
+      setPointerPassthrough: { provider: (fn: typeof passthroughProvider) => (passthroughProvider = fn) },
       minimize: { provider: (fn: ProviderFn) => (providers.minimize = fn) },
       maximize: { provider: (fn: ProviderFn) => (providers.maximize = fn) },
       unmaximize: { provider: (fn: ProviderFn) => (providers.unmaximize = fn) },
@@ -71,6 +78,7 @@ describe('windowControlsBridge close-to-tray', () => {
     close.mockClear();
     minimize.mockClear();
     on.mockClear();
+    setIgnoreMouseEvents.mockClear();
     getFocusedWindow.mockReset();
     getFocusedWindow.mockReturnValue(mockWindow);
     getAllWindows.mockReset();
@@ -122,4 +130,28 @@ describe('windowControlsBridge close-to-tray', () => {
     expect(hide).toHaveBeenCalledTimes(1);
     expect(close).not.toHaveBeenCalled();
   });
+
+  it.runIf(process.platform === 'darwin')(
+    'keeps transparent-area input bound to the main window when a child is focused',
+    async () => {
+      const { registerGlassWindow } = await import('@/process/bridge/windowControlsBridge');
+      registerGlassWindow(mockWindow as unknown as BrowserWindow);
+      const childPassthrough = vi.fn();
+      getFocusedWindow.mockReturnValue({ ...mockWindow, setIgnoreMouseEvents: childPassthrough });
+      await passthroughProvider(true);
+      expect(setIgnoreMouseEvents).toHaveBeenCalledWith(true, { forward: true });
+      expect(childPassthrough).not.toHaveBeenCalled();
+    }
+  );
+
+  it.runIf(process.platform === 'darwin')(
+    'ignores late pointer events after the main window is destroyed',
+    async () => {
+      const { registerGlassWindow } = await import('@/process/bridge/windowControlsBridge');
+      registerGlassWindow(mockWindow as unknown as BrowserWindow);
+      isDestroyed.mockReturnValue(true);
+      await passthroughProvider(false);
+      expect(setIgnoreMouseEvents).not.toHaveBeenCalled();
+    }
+  );
 });

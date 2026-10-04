@@ -16,8 +16,9 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { Button, Dropdown, Menu, Modal, Tooltip, Typography } from '@arco-design/web-react';
 import { CornerDownRight, Delete, Drag, Edit, MoreOne, SendOne, SortTwo } from '@icon-park/react';
-import React, { useMemo, useRef } from 'react';
+import React, { useLayoutEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useMotion } from '@/renderer/hooks/ui/useMotion';
 
 const getCommandPreview = (input: string): string => input.replace(/\s+/g, ' ').trim();
 
@@ -356,6 +357,29 @@ const CommandQueuePanel: React.FC<CommandQueuePanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const queueContainerRef = useRef<HTMLDivElement | null>(null);
+  const countRef = useRef<HTMLSpanElement>(null);
+  const mountedAtRef = useRef(Date.now());
+  const seenItemsRef = useRef(new Set(items.map((item) => item.id)));
+  const { animate } = useMotion();
+  useLayoutEffect(() => {
+    const added = items.filter((item) => !seenItemsRef.current.has(item.id) && item.created_at >= mountedAtRef.current);
+    items.forEach((item) => seenItemsRef.current.add(item.id));
+    if (added.length === 0) return;
+    const addedIds = new Set(added.map((item) => item.id));
+    queueContainerRef.current?.querySelectorAll<HTMLElement>('[data-command-id]').forEach((card) => {
+      if (!addedIds.has(card.dataset.commandId ?? '')) return;
+      // Animate the inner card, leaving dnd-kit's measured sortable transform untouched.
+      animate(card, [
+        { opacity: 0, transform: 'translateY(10px) scale(.98)' },
+        { opacity: 1, transform: 'translateY(0) scale(1)' },
+      ]);
+    });
+    animate(countRef.current, [
+      { transform: 'scale(.86)' },
+      { offset: 0.65, transform: 'scale(1.08)' },
+      { transform: 'scale(1)' },
+    ]);
+  }, [items, animate]);
   const activeDragHandleRef = useRef<HTMLButtonElement | null>(null);
   // Desktop: drag starts after moving 8px from the handle.
   // Narrow / mobile: no handle, so long-press the whole row (200ms) starts the drag;
@@ -495,6 +519,7 @@ const CommandQueuePanel: React.FC<CommandQueuePanelProps> = ({
               </span>
             )}
             <span
+              ref={countRef}
               className='inline-flex items-center justify-center rd-999px px-6px h-16px text-10px leading-none font-600'
               style={{ background: 'var(--color-fill-3)', color: 'var(--color-text-2)' }}
             >

@@ -22,10 +22,14 @@
 // state quietly went clean anyway.
 
 import React from 'react';
-import { act, render, cleanup } from '@testing-library/react';
+import { act, render, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({ writeContent: vi.fn(), getContentMetadata: vi.fn() }));
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -48,6 +52,7 @@ import {
   usePreviewContext,
   type PreviewContextValue,
 } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
+import RevisionReview from '@/renderer/pages/conversation/Preview/components/RevisionReview';
 
 let ctx: PreviewContextValue;
 const Probe: React.FC = () => {
@@ -171,5 +176,124 @@ describe('a rejected save leaves the tab dirty', () => {
 
     expect(activeTab()?.isDirty).toBe(false);
     expect(activeTab()?.originalContent).toBe('edited by user');
+  });
+
+  it('preserves newer typing as unsaved when the earlier revision finishes saving', async () => {
+    let finishWrite: (value: boolean) => void = () => {};
+    h.writeContent.mockImplementationOnce(() => new Promise<boolean>((resolve) => (finishWrite = resolve)));
+    mount();
+    openAndEdit();
+    const saving = ctx.saveContent();
+    act(() => ctx.updateContent('newer typing while saving'));
+
+    await act(async () => {
+      finishWrite(true);
+      await saving;
+    });
+
+    expect(activeTab()?.content).toBe('newer typing while saving');
+    expect(activeTab()?.originalContent).toBe('edited by user');
+    expect(activeTab()?.isDirty).toBe(true);
+  });
+
+  it('restores the original as an unsaved draft without issuing another disk write', async () => {
+    mount();
+    openAndEdit();
+    await act(async () => {
+      await ctx.saveContent();
+    });
+    act(() => ctx.updateContent('original'));
+
+    expect(activeTab()?.content).toBe('original');
+    expect(activeTab()?.isDirty).toBe(true);
+    expect(h.writeContent).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('reviewing and adopting an editor revision', () => {
+  const props = () => ({
+    original: 'Original user document',
+    draft: 'Revised user document',
+    dirty: true,
+    onAdopt: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
+    onRestoreDraft: vi.fn<(content: string) => void>(),
+  });
+
+  const openComparison = (): void => {
+    fireEvent.click(screen.getByRole('button', { name: 'preview.revisionReview.review' }));
+  };
+
+  it('shows both real versions without saving until adoption is explicitly requested', () => {
+    const options = props();
+    render(<RevisionReview {...options} />);
+    openComparison();
+
+    expect(screen.getByText(options.original)).toBeTruthy();
+    expect(screen.getByText(options.draft)).toBeTruthy();
+    expect(options.onAdopt).not.toHaveBeenCalled();
+  });
+
+  it('keeps the comparison and draft available when adoption is refused', async () => {
+    const options = props();
+    options.onAdopt.mockResolvedValue(false);
+    render(<RevisionReview {...options} />);
+    openComparison();
+    fireEvent.click(screen.getByRole('button', { name: 'preview.revisionReview.adopt' }));
+    await waitFor(() => expect(options.onAdopt).toHaveBeenCalledTimes(1));
+
+    expect(screen.getByText(options.draft)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'preview.revisionReview.undo' })).toBeNull();
+  });
+
+  it('restores only an unsaved original draft after a successful adoption', async () => {
+    const options = props();
+    const view = render(<RevisionReview {...options} />);
+    openComparison();
+    fireEvent.click(screen.getByRole('button', { name: 'preview.revisionReview.adopt' }));
+    await waitFor(() => expect(options.onAdopt).toHaveBeenCalledTimes(1));
+    view.rerender(<RevisionReview {...options} original={options.draft} dirty={false} />);
+    fireEvent.click(screen.getByRole('button', { name: 'preview.revisionReview.undo' }));
+
+    expect(options.onRestoreDraft).toHaveBeenCalledWith(options.original);
+    expect(options.onAdopt).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not offer restoration over newer user edits', async () => {
+    const options = props();
+    const view = render(<RevisionReview {...options} />);
+    openComparison();
+    fireEvent.click(screen.getByRole('button', { name: 'preview.revisionReview.adopt' }));
+    await waitFor(() => expect(options.onAdopt).toHaveBeenCalledTimes(1));
+    view.rerender(<RevisionReview {...options} original={options.draft} draft='Further user edits' dirty />);
+
+    expect(screen.queryByRole('button', { name: 'preview.revisionReview.undo' })).toBeNull();
+    expect(options.onRestoreDraft).not.toHaveBeenCalled();
+  });
+
+  it('does not offer restoration after a different revision is reloaded from disk', async () => {
+    const options = props();
+    const view = render(<RevisionReview {...options} />);
+    openComparison();
+    fireEvent.click(screen.getByRole('button', { name: 'preview.revisionReview.adopt' }));
+    await waitFor(() => expect(options.onAdopt).toHaveBeenCalledTimes(1));
+    view.rerender(<RevisionReview {...options} original='External change' draft='External change' dirty={false} />);
+
+    expect(screen.queryByRole('button', { name: 'preview.revisionReview.undo' })).toBeNull();
+    expect(options.onRestoreDraft).not.toHaveBeenCalled();
+  });
+
+  it('ignores repeated adoption while the write is pending', async () => {
+    const options = props();
+    let finishWrite: (value: boolean) => void = () => {};
+    options.onAdopt.mockImplementation(() => new Promise<boolean>((resolve) => (finishWrite = resolve)));
+    render(<RevisionReview {...options} />);
+    openComparison();
+    const adopt = screen.getByRole('button', { name: 'preview.revisionReview.adopt' });
+    fireEvent.click(adopt);
+    fireEvent.click(adopt);
+    await act(async () => finishWrite(false));
+
+    expect(options.onAdopt).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(options.draft)).toBeTruthy();
   });
 });

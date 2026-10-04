@@ -97,5 +97,6 @@
   "requestDetails": "جزئیات درخواست:",
   "delivery": {
     "pending": "خوانده‌نشده"
-  }
+  },
+  "viewSteps": "نمایش مراحل"
 }

@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { replaceUpstreamBrand } from '@/common/branding';
 import { buildGuidSlashCommands } from '@/common/chat/slash/guidSlashCommands';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
@@ -16,9 +17,9 @@ import { appendPromptToDraft } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
-import AssistantSelectionArea from './components/AssistantSelectionArea';
+import AssistantGallery from './components/AssistantGallery';
 import GuidActionRow from './components/GuidActionRow';
-import GuidInputCard from './components/GuidInputCard';
+import GuidInputCard, { type PromptTransfer } from './components/GuidInputCard';
 import GuidModelSelector from './components/GuidModelSelector';
 import QuickActionButtons from './components/QuickActionButtons';
 import FeedbackReportModal from '@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal';
@@ -62,6 +63,9 @@ const GuidPage: React.FC = () => {
 
   const localeKey = resolveLocaleKey(i18n.language);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [assistantMotionId, setAssistantMotionId] = useState<string>();
+  const [promptTransfer, setPromptTransfer] = useState<PromptTransfer>();
+  const promptSequenceRef = useRef(0);
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -313,9 +317,10 @@ const GuidPage: React.FC = () => {
 
   const handleSelectAssistant = useCallback(
     (assistantId: string) => {
+      if (assistantId !== agentSelection.selectedAssistantId) setAssistantMotionId(assistantId);
       agentSelection.setSelectedAssistantId(assistantId);
     },
-    [agentSelection.setSelectedAssistantId]
+    [agentSelection.setSelectedAssistantId, agentSelection.selectedAssistantId]
   );
 
   // Typewriter placeholder
@@ -339,7 +344,8 @@ const GuidPage: React.FC = () => {
       [];
 
     if (resolvedPrompts.length > 0) {
-      return resolvedPrompts;
+      const source = selectedAssistantDetail?.source ?? selectedAssistantRecord?.source;
+      return source === 'builtin' ? resolvedPrompts.map(replaceUpstreamBrand) : resolvedPrompts;
     }
 
     return [t('guid.defaultPrompts.understand'), t('guid.defaultPrompts.cleanup'), t('guid.defaultPrompts.create')];
@@ -669,17 +675,20 @@ const GuidPage: React.FC = () => {
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <div className={styles.guidLayout}>
           <div className={styles.heroHeader}>
-            <p className='text-2xl font-semibold mb-0 text-t-primary text-center'>{t('conversation.welcome.title')}</p>
+            <div>
+              <h1 className={styles.heroTitle}>{t('guid.glass.inputTitle')}</h1>
+              <p className={styles.heroSubtitle}>{t('guid.glass.subtitle')}</p>
+            </div>
           </div>
 
-          <AssistantSelectionArea
-            selectedAssistantId={agentSelection.selectedAssistantId}
-            assistants={agentSelection.assistants}
-            localeKey={localeKey}
-            onSelectAssistant={handleSelectAssistant}
-          />
-
           <GuidInputCard
+            assistantMotionKey={assistantMotionId === selectedAssistantId ? assistantMotionId : undefined}
+            promptTransfer={promptTransfer}
+            assistantName={
+              selectedAssistantRecord
+                ? replaceUpstreamBrand(selectedAssistantRecord.name_i18n?.[localeKey] || selectedAssistantRecord.name)
+                : undefined
+            }
             focusRequestKey={navState?.focusPrefill && navState.prefillPrompt ? location.key : undefined}
             input={guidInput.input}
             onInputChange={handleInputChange}
@@ -703,41 +712,55 @@ const GuidPage: React.FC = () => {
             onClearWorkspace={() => guidInput.setDir('')}
           />
 
+          <AssistantGallery
+            selectedAssistantId={agentSelection.selectedAssistantId}
+            assistants={agentSelection.assistants}
+            localeKey={localeKey}
+            onSelectAssistant={handleSelectAssistant}
+          />
+
           {selectedAssistantPrompts.length > 0 ? (
-            <div className='mt-18px w-full animate-fade-in ps-20px'>
-              <div className={`${styles.assistantPromptHint} mb-10px text-start`}>
+            <div className={styles.promptSection}>
+              <div className={styles.assistantPromptHint}>
                 {t('guid.promptExamplesHint', { defaultValue: 'Try these example prompts:' })}
               </div>
-              <div className='flex flex-col gap-9px'>
+              <div className={styles.promptGrid}>
                 {selectedAssistantPrompts.map((prompt, index) => (
                   <Button
                     key={`${index}-${prompt}`}
                     type='text'
-                    className='group !h-auto !w-full !border-none !bg-transparent !px-0 !py-6px !text-start !text-12.5px !text-t-secondary !whitespace-normal !break-words transition-colors hover:!bg-transparent hover:!text-t-primary'
-                    onClick={() => {
+                    className={`${styles.promptCard} !whitespace-normal !break-words`}
+                    onClick={(event) => {
+                      if (event.currentTarget instanceof HTMLElement) {
+                        const { left, top, width, height } = event.currentTarget.getBoundingClientRect();
+                        setPromptTransfer({
+                          sequence: ++promptSequenceRef.current,
+                          text: prompt,
+                          source: { left, top, width, height },
+                        });
+                      }
                       guidInput.setInput(prompt);
                       guidInput.handleTextareaFocus();
                     }}
                   >
                     <span>{prompt}</span>
-                    <ArrowRightUp
-                      theme='outline'
-                      size='13'
-                      className='ms-6px inline-flex flex-shrink-0 align-[-1px] text-t-primary opacity-0 transition-opacity group-hover:opacity-100'
-                    />
+                    <ArrowRightUp theme='outline' size='13' className={styles.promptArrow} />
                   </Button>
                 ))}
               </div>
             </div>
           ) : null}
+
+          <div className={styles.guidFooter}>
+            <QuickActionButtons
+              onOpenLink={openLink}
+              onOpenBugReport={() => setShowFeedbackModal(true)}
+              inactiveBorderColor={inactiveBorderColor}
+              activeShadow={activeShadow}
+            />
+          </div>
         </div>
 
-        <QuickActionButtons
-          onOpenLink={openLink}
-          onOpenBugReport={() => setShowFeedbackModal(true)}
-          inactiveBorderColor={inactiveBorderColor}
-          activeShadow={activeShadow}
-        />
         <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
       </div>
     </ConfigProvider>

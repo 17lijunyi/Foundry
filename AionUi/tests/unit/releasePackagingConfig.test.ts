@@ -25,7 +25,7 @@ describe('release packaging configuration', () => {
   it('uses the custom display name while preserving the executable compatibility name', () => {
     const config = readProjectFile('packages/desktop/electron-builder.yml');
 
-    expect(config).toContain('productName: 产品经理工作台');
+    expect(config).toContain('productName: Foundry');
     expect(config).toContain('executableName: AionUi');
   });
 

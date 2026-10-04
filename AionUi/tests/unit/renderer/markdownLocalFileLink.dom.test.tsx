@@ -5,11 +5,13 @@
  */
 
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MarkdownView from '@/renderer/components/Markdown';
 
 const copyTextMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const animateMock = vi.hoisted(() => vi.fn());
+vi.mock('@/renderer/hooks/ui/useMotion', () => ({ useMotion: () => ({ animate: animateMock }) }));
 
 vi.mock('@/renderer/components/Markdown/ShadowView', () => ({
   __esModule: true,
@@ -68,6 +70,7 @@ vi.mock('react-i18next', () => ({
 describe('MarkdownView local file links', () => {
   beforeEach(() => {
     copyTextMock.mockClear();
+    animateMock.mockClear();
   });
 
   it('renders local file links as app controls instead of browser anchors', () => {
@@ -91,6 +94,55 @@ describe('MarkdownView local file links', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
     expect(copyTextMock).toHaveBeenCalledWith('C:/Users/Administrator/AppData/Roaming/AionUi/report.xlsx');
+  });
+
+  it('connects the file chip to its panel only after the open promise resolves', async () => {
+    let resolveOpen!: () => void;
+    const opened = new Promise<void>((resolve) => {
+      resolveOpen = resolve;
+    });
+    render(
+      <>
+        <MarkdownView onLocalFileLink={() => opened}>{'[report.md](/workspace/report.md)'}</MarkdownView>
+        <div data-foundry-preview-content />
+      </>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'report.md' }));
+    expect(animateMock).not.toHaveBeenCalled();
+    await act(async () => {
+      resolveOpen();
+      await opened;
+    });
+    await waitFor(() => expect(animateMock).toHaveBeenCalledTimes(2));
+  });
+
+  it('does not signal an arrival when opening the file fails', async () => {
+    render(
+      <MarkdownView onLocalFileLink={() => Promise.reject(new Error('cannot open'))}>
+        {'[report.md](/workspace/report.md)'}
+      </MarkdownView>
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'report.md' }));
+    });
+    expect(animateMock).not.toHaveBeenCalled();
+  });
+
+  it('does not animate a stale open that resolves after its message was unmounted', async () => {
+    let resolveOpen!: () => void;
+    const opened = new Promise<void>((resolve) => {
+      resolveOpen = resolve;
+    });
+    const { unmount } = render(
+      <MarkdownView onLocalFileLink={() => opened}>{'[report.md](/workspace/report.md)'}</MarkdownView>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'report.md' }));
+    unmount();
+    await act(async () => {
+      resolveOpen();
+      await opened;
+    });
+    expect(animateMock).not.toHaveBeenCalled();
   });
 
   it('renders line references as file chips and copies the full reference', () => {

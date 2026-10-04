@@ -1,5 +1,5 @@
 appId: com.aionui.app
-productName: 产品经理工作台
+productName: Foundry
 executableName: AionUi
 copyright: Copyright © 2024 AionUi
 
@@ -175,7 +175,7 @@ linux:
   description: ${description}
   desktop:
     entry:
-      Name: 产品经理工作台
+      Name: Foundry
       Comment: ${description}
       Icon: AionUi
       Categories: Office;Utility;
@@ -186,6 +186,7 @@ buildDependenciesFromSource: false
 nodeGypRebuild: false
 
 asarUnpack:
+  - 'out/main/native/*.node'
   - '**/node_modules/better-sqlite3/**/*'
   - '**/node_modules/bcrypt/**/*'
   - '**/node_modules/node-pty/**/*'

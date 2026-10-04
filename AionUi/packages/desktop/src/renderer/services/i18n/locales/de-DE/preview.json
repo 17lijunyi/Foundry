@@ -176,5 +176,17 @@
   "zoomIn": "Vergrößern",
   "zoomOut": "Verkleinern",
   "zoomReset": "Ansicht zurücksetzen",
-  "diagramZoomHint": "Scrollen zum Zoomen • Ziehen zum Verschieben • ESC zum Schließen"
+  "diagramZoomHint": "Scrollen zum Zoomen • Ziehen zum Verschieben • ESC zum Schließen",
+  "revisionReview": {
+    "review": "Änderungen vergleichen",
+    "title": "Versionsvergleich",
+    "before": "Original",
+    "after": "Überarbeiteter Entwurf",
+    "adopt": "Übernehmen und speichern",
+    "saved": "Änderungen gespeichert",
+    "undo": "Original als Entwurf wiederherstellen",
+    "undoHint": "Stellt das Original als ungespeicherten Entwurf wieder her, ohne die Datei auf dem Datenträger zu überschreiben.",
+    "draftHint": "Vor dem Übernehmen vergleichen. Bei einem Speicherfehler bleibt der Entwurf erhalten.",
+    "empty": "Leeres Dokument"
+  }
 }

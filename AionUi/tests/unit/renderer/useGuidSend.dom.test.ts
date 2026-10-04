@@ -82,6 +82,26 @@ describe('useGuidSend', () => {
     swrMutateMock.mockResolvedValue(undefined);
   });
 
+  it('preserves the draft when no model is configured for Aion CLI', async () => {
+    const deps = createDeps();
+    deps.selectedAssistantBackend = 'aionrs';
+    const { result } = renderHook(() => useGuidSend(deps));
+    await act(async () => result.current.sendMessageHandler());
+    expect(deps.setInput).not.toHaveBeenCalled();
+    expect(deps.setFiles).not.toHaveBeenCalled();
+    expect(deps.navigate).not.toHaveBeenCalled();
+  });
+
+  it('preserves the draft when conversation creation returns no ID', async () => {
+    const deps = createDeps();
+    createConversationInvokeMock.mockResolvedValue(null);
+    const { result } = renderHook(() => useGuidSend(deps));
+    await act(async () => result.current.sendMessageHandler());
+    expect(deps.setInput).not.toHaveBeenCalled();
+    expect(deps.setFiles).not.toHaveBeenCalled();
+    expect(deps.navigate).not.toHaveBeenCalled();
+  });
+
   it('passes selected mode into assistant conversation overrides when creating a preset ACP conversation', async () => {
     const deps = createDeps();
     (deps as any).selectedThoughtLevelValue = 'high';

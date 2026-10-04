@@ -13,5 +13,15 @@
     "specifyWorkspace": "选择项目文件夹",
     "searchPlaceholder": "搜索项目…",
     "noProject": "不使用项目"
+  },
+  "glass": {
+    "workspace": "工作空间",
+    "subtitle": "与 AI 助手一起，让产品想法落地。",
+    "searchAssistants": "搜索助手…",
+    "noAssistants": "没有找到匹配的助手",
+    "navigation": "主导航",
+    "quickActions": "工作台快捷操作",
+    "inputTitle": "今天，想推进什么？",
+    "chooseAssistant": "选择助手"
   }
 }

@@ -8,16 +8,67 @@ import { joinPath } from '@/common/chat/chatLib';
 import { localFileRef } from '@/common/types/chatFile';
 import type { PreviewContentType } from '@/common/types/office/preview';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { useMotion } from '@/renderer/hooks/ui/useMotion';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { resolvePreviewPayload, upgradeFileRef } from '@/renderer/utils/file/previewPayload';
 import { getCurrentProject } from '@/renderer/pages/conversation/explorer/currentProjectStore';
 import { classifyPreviewError, type PreviewErrorKind } from '@/renderer/utils/previewError';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+/** Connect an opened file with its preview without moving the native glass host. */
+export const usePreviewArrivalMotion = () => {
+  const { animate } = useMotion();
+  const frameRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    const clearFrame = () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    };
+    window.addEventListener('pagehide', clearFrame);
+    return () => {
+      mountedRef.current = false;
+      clearFrame();
+      window.removeEventListener('pagehide', clearFrame);
+    };
+  }, []);
+
+  return useCallback(
+    (source?: HTMLElement | null) => {
+      if (!mountedRef.current) return;
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      frameRef.current = requestAnimationFrame(() => {
+        frameRef.current = null;
+        if (source?.isConnected) {
+          animate(source, [
+            { transform: 'translateX(0)', opacity: 1 },
+            { transform: 'translateX(12px)', opacity: 0.7, offset: 0.45 },
+            { transform: 'translateX(0)', opacity: 1 },
+          ]);
+        }
+        const destination = document.querySelector<HTMLElement>('[data-foundry-preview-content]');
+        if (destination) {
+          animate(
+            destination,
+            [
+              { opacity: 0.65, transform: 'translateX(12px)' },
+              { opacity: 1, transform: 'translateX(0)' },
+            ],
+            { duration: 360 }
+          );
+        }
+      });
+    },
+    [animate]
+  );
+};
 
 /**
  * 预览启动选项 / Preview launch options
  */
-interface PreviewLaunchOptions {
+type PreviewLaunchOptions = {
   /** 相对工作区路径 / Workspace-relative path */
   relativePath?: string;
   /** 备用路径（如绝对路径）/ Fallback path (absolute or provided path) */
@@ -36,7 +87,9 @@ interface PreviewLaunchOptions {
   fallbackContent?: string;
   /** 只读 diff 内容回退 / Read-only diff fallback */
   diffContent?: string;
-}
+  /** Optional clicked file card, used only after a preview has opened. */
+  motionSource?: HTMLElement | null;
+};
 
 /**
  * 统一的预览面板打开逻辑
@@ -55,6 +108,7 @@ export const usePreviewLauncher = () => {
   const { openPreview } = usePreviewContext();
   const [loading, setLoading] = useState(false);
   const [errorKind, setErrorKind] = useState<PreviewErrorKind | null>(null);
+  const showArrival = usePreviewArrivalMotion();
 
   /**
    * 启动预览面板 / Launch preview panel
@@ -70,9 +124,23 @@ export const usePreviewLauncher = () => {
       editable,
       fallbackContent,
       diffContent,
+      motionSource,
     }: PreviewLaunchOptions) => {
       setLoading(true);
       setErrorKind(null);
+      const source =
+        motionSource ??
+        (document.activeElement instanceof HTMLElement && document.activeElement.closest('.message-item')
+          ? document.activeElement
+          : null);
+      let motionQueued = false;
+      const openWithArrival: typeof openPreview = (...args) => {
+        openPreview(...args);
+        if (!motionQueued) {
+          showArrival(source);
+          motionQueued = true;
+        }
+      };
 
       // 路径解析 / Path resolution
       // 优先使用工作区 + 相对路径拼接绝对路径 / Prefer workspace + relative path to build absolute path
@@ -105,7 +173,7 @@ export const usePreviewLauncher = () => {
       // 1. 乐观预览：如果有回退内容（如 Diff 中提取的内容），立即显示 / Optimistic preview: Show fallback content immediately if available
       let hasOpened = false;
       if (typeof fallbackContent === 'string') {
-        openPreview(fallbackContent, contentType, {
+        openWithArrival(fallbackContent, contentType, {
           ...metadata,
           editable,
         });
@@ -122,7 +190,7 @@ export const usePreviewLauncher = () => {
             // and lastModified (the save-time If-Match); oversized files are never read.
             const payload = await resolvePreviewPayload(fileRef, contentType);
 
-            openPreview(payload.content, contentType, {
+            openWithArrival(payload.content, contentType, {
               ...metadata,
               // 超限文件只读：没有内容可编辑，也没有半截内容可被写回。
               // Oversized files are read-only: no content to edit, and no partial
@@ -148,7 +216,7 @@ export const usePreviewLauncher = () => {
         if (!hasOpened) {
           // 显示 diff 内容（只读）/ Show diff content (read-only)
           if (diffContent) {
-            openPreview(diffContent, 'diff', {
+            openWithArrival(diffContent, 'diff', {
               ...metadata,
               editable: false,
             });
@@ -162,7 +230,7 @@ export const usePreviewLauncher = () => {
         setLoading(false);
       }
     },
-    [workspace, openPreview]
+    [workspace, openPreview, showArrival]
   );
 
   return { launchPreview, loading, errorKind };

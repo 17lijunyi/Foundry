@@ -216,7 +216,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             <Tooltip content={t('common.modelBench.title')} position='right'>
               <Button
                 type={pathname === '/model-bench' ? 'secondary' : 'text'}
-                className='w-full min-h-34px text-t-primary'
+                className='sider-model-bench-entry w-full min-h-34px text-t-primary'
                 aria-label={t('common.modelBench.title')}
                 icon={<Experiment size={18} />}
                 onClick={() => {

@@ -176,5 +176,17 @@
   "zoomIn": "放大",
   "zoomOut": "缩小",
   "zoomReset": "重置视图",
-  "diagramZoomHint": "滚轮缩放 • 拖拽平移 • ESC 关闭"
+  "diagramZoomHint": "滚轮缩放 • 拖拽平移 • ESC 关闭",
+  "revisionReview": {
+    "review": "对照修改",
+    "title": "改写对照",
+    "before": "原文",
+    "after": "修改后的草稿",
+    "adopt": "采纳并保存",
+    "saved": "修改已保存",
+    "undo": "还原原文到草稿",
+    "undoHint": "恢复原文作为未保存草稿，不会覆盖磁盘文件。",
+    "draftHint": "先对照，再采纳。保存失败时草稿会保留。",
+    "empty": "空文档"
+  }
 }

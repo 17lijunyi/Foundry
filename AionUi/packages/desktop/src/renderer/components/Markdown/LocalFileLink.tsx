@@ -4,13 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { Button, Message, Tooltip } from '@arco-design/web-react';
 import { Copy } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { useTranslation } from 'react-i18next';
 import type { LocalFileLinkReference } from './markdownUtils';
+import { usePreviewArrivalMotion } from '@/renderer/hooks/file/usePreviewLauncher';
 
 type LocalFileLinkProps = {
   reference: LocalFileLinkReference;
@@ -20,6 +21,8 @@ type LocalFileLinkProps = {
 
 const LocalFileLink: React.FC<LocalFileLinkProps> = ({ reference, children, onOpen }) => {
   const { t } = useTranslation();
+  const sourceRef = useRef<HTMLSpanElement>(null);
+  const showArrival = usePreviewArrivalMotion();
   const { filePath, line, rawReference } = reference;
   const fallbackLabel = filePath.split(/[\\/]/).pop() || filePath;
   const label = children || fallbackLabel;
@@ -34,14 +37,19 @@ const LocalFileLink: React.FC<LocalFileLinkProps> = ({ reference, children, onOp
   const canOpen = Boolean(onOpen);
 
   const handleOpen = useCallback(
-    (event: Event) => {
+    async (event: Event) => {
       event.preventDefault();
       event.stopPropagation();
       if (onOpen) {
-        void onOpen(filePath, reference);
+        try {
+          await onOpen(filePath, reference);
+          showArrival(sourceRef.current);
+        } catch {
+          // The opener owns its error UI; a failed open must not signal arrival.
+        }
       }
     },
-    [filePath, onOpen, reference]
+    [filePath, onOpen, reference, showArrival]
   );
 
   const handleCopy = useCallback(
@@ -68,6 +76,7 @@ const LocalFileLink: React.FC<LocalFileLinkProps> = ({ reference, children, onOp
 
   return (
     <span
+      ref={sourceRef}
       className='inline-flex items-center gap-2px max-w-full align-baseline'
       data-local-file-path={filePath}
       data-local-file-line={line}

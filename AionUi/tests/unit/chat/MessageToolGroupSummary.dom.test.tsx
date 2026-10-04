@@ -82,7 +82,7 @@ describe('MessageToolGroupSummary ACP image output', () => {
     };
 
     render(<MessageToolGroupSummary messages={[message]} />);
-    fireEvent.click(screen.getByText('View Steps · 1'));
+    fireEvent.click(screen.getByRole('button', { name: 'messages.viewSteps · 1' }));
 
     const image = screen.getByTestId('local-image');
     expect(image).toHaveAttribute('src', '/Users/test/.codex/generated_images/session/ig_test_image.png');
@@ -113,7 +113,7 @@ describe('MessageToolGroupSummary ACP image output', () => {
     };
 
     render(<MessageToolGroupSummary messages={[message]} />);
-    fireEvent.click(screen.getByText('View Steps · 1'));
+    fireEvent.click(screen.getByRole('button', { name: 'messages.viewSteps · 1' }));
     fireEvent.click(screen.getByLabelText('acp.image.download_aria'));
 
     expect(mockDownloadFileFromPath).toHaveBeenCalledWith(imagePath, 'ig_test_image.png');
@@ -145,7 +145,7 @@ describe('MessageToolGroupSummary ACP image output', () => {
     };
 
     render(<MessageToolGroupSummary messages={[message]} />);
-    fireEvent.click(screen.getByText('View Steps · 1'));
+    fireEvent.click(screen.getByRole('button', { name: 'messages.viewSteps · 1' }));
     fireEvent.click(screen.getByLabelText('acp.image.download_aria'));
 
     await waitFor(() => {
@@ -179,7 +179,7 @@ describe('MessageToolGroupSummary ACP image output', () => {
     };
 
     render(<MessageToolGroupSummary messages={[message]} />);
-    fireEvent.click(screen.getByText('View Steps · 1'));
+    fireEvent.click(screen.getByRole('button', { name: 'messages.viewSteps · 1' }));
 
     expect(screen.getByLabelText('acp.image.download_aria')).toBeInTheDocument();
   });
@@ -198,7 +198,7 @@ describe('MessageToolGroupSummary ACP image output', () => {
     };
 
     render(<MessageToolGroupSummary messages={[message]} />);
-    fireEvent.click(screen.getByText('View Steps · 1'));
+    fireEvent.click(screen.getByRole('button', { name: 'messages.viewSteps · 1' }));
 
     expect(screen.queryByTestId('local-image')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('acp.image.download_aria')).not.toBeInTheDocument();

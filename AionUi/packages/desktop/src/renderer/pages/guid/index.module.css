@@ -1,7 +1,7 @@
 .guidLayout {
-  width: clamp(var(--app-min-width, 360px), calc(100% - 32px), 800px);
-  max-width: 100%;
-  padding: 0 16px;
+  width: 100%;
+  max-width: 900px;
+  padding: 40px clamp(20px, 3vw, 44px) 28px;
   box-sizing: border-box;
   margin: 0 auto;
 }
@@ -10,13 +10,233 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
+  text-align: center;
+  margin-bottom: 26px;
+}
+
+.heroTitle {
+  margin: 0;
+  font-size: 27px;
+  line-height: 1.3;
+  letter-spacing: -0.8px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+.heroSubtitle {
+  margin: 7px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--glass-muted);
+}
+
+.gallery {
+  container-type: inline-size;
+  margin-top: 22px;
+}
+.galleryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.galleryTitle {
+  margin: 0;
+  color: var(--glass-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.gallerySearch:global(.arco-input-group-wrapper) {
+  width: 180px;
+  max-width: 58%;
+}
+.gallerySearch :global(.arco-input-inner-wrapper) {
+  height: 30px;
+  padding-inline: 11px;
+  border-radius: 24px;
+  background: var(--glass-shade);
+  border-color: var(--glass-line);
+  color: var(--glass-muted);
+}
+.gallerySearch :global(.arco-input) {
+  font-size: 12px;
+}
+.galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.galleryCard:global(.arco-btn) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 50px;
+  min-width: 0;
+  padding: 9px 10px;
+  text-align: start;
+  background: transparent;
+  border: 0;
+  border-radius: 13px;
+  color: var(--text-primary);
+  white-space: normal;
+}
+.galleryCard:global(.arco-btn):is(:hover, :active) {
+  background: var(--glass-shade) !important;
+  color: var(--text-primary) !important;
+}
+.galleryCard:global(.arco-btn)[aria-pressed='true'] {
+  background: var(--glass-selected) !important;
+  color: var(--text-primary) !important;
+}
+.galleryCard :global(.arco-btn-content) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+}
+.galleryArtwork {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  transition: transform 180ms ease;
+}
+.galleryCard:hover .galleryArtwork {
+  transform: translateY(-1px);
+}
+.galleryLogo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.galleryEmoji {
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  font-size: 32px;
+  line-height: 1;
+}
+.galleryFallback {
+  width: 32px;
+  height: 32px;
+  color: var(--glass-muted);
+}
+.galleryCaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.gallerySelected {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--glass-focus);
+}
+.galleryName {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.galleryCard[aria-pressed='true'] .galleryName {
+  font-weight: 600;
+}
+.galleryEmpty {
+  margin: 28px auto;
+  color: var(--glass-muted);
+}
+.galleryMore:global(.arco-btn) {
+  display: flex;
+  margin: 14px auto -8px;
+  color: var(--glass-muted);
+}
+.promptSection {
+  margin-top: 22px;
+  width: 100%;
+}
+.promptGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.promptCard:global(.arco-btn) {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  height: auto;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 14px;
+  background: var(--glass-surface);
+  box-shadow: var(--glass-inset);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: normal;
+  text-align: start;
+}
+.promptCard:global(.arco-btn):hover {
+  background: var(--glass-selected);
+  color: var(--text-primary);
+}
+.promptCard :global(.arco-btn-content) {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.promptArrow {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--glass-muted);
+}
+
+@media (min-width: 768px) {
+  .promptGrid:has(> :last-child:nth-child(4)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1050px) {
+  .heroTitle {
+    font-size: 24px;
+  }
+}
+@container (max-width: 560px) {
+  .galleryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 767px) {
+  .promptGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .galleryArtwork {
+    transition: none;
+  }
+  .galleryCard:hover .galleryArtwork {
+    transform: none;
+  }
 }
 
 .assistantPromptHint {
-  color: var(--color-text-3);
-  font-size: 13px;
+  color: var(--glass-muted);
+  font-size: 12px;
   line-height: 20px;
+  text-align: center;
 }
 
 .guidInputCard {
@@ -25,21 +245,63 @@
 }
 
 .guidInputCardWrap {
+  position: relative;
   width: 100%;
   box-sizing: border-box;
-  background: var(--bg-2);
+  background: transparent;
+}
+
+.promptTransfer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  transform-origin: top left;
+  overflow: hidden;
+  padding: 10px 12px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 14px;
+  background: var(--glass-surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+  box-sizing: border-box;
 }
 
 .guidInputInner {
-  background: var(--bg-base, #fff);
-  border: 1px solid var(--color-border-3);
+  min-height: 180px;
+  background: transparent;
+  border: 0;
+  box-shadow: none !important;
   border-radius: 24px;
   box-sizing: border-box;
 }
 
+.composerAssistant {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-inline: 7px;
+  margin-bottom: 14px;
+  color: var(--glass-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+.composerAssistant::before {
+  content: '';
+  flex: 0 0 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--glass-focus);
+}
+
 :global([data-theme='dark']) .guidInputInner {
-  background: #262626;
-  border-color: #3a3a3a;
+  background: transparent;
+  border-color: transparent;
 }
 
 .actionRow {
@@ -361,9 +623,8 @@
 /* 移动端优化 */
 @media (max-width: 768px) {
   .guidLayout {
-    width: clamp(var(--app-min-width, 360px), calc(100% - 24px), 100%);
-    padding: 0 12px;
-    padding-bottom: 100px; /* 为底部快捷按钮留出空间 */
+    width: 100%;
+    padding: 22px 16px;
     box-sizing: border-box;
   }
 
@@ -421,8 +682,8 @@
 /* 小屏手机再收窄一点安全边距，提升可操作面积 */
 @media (max-width: 420px) {
   .guidLayout {
-    width: clamp(var(--app-min-width, 360px), calc(100% - 20px), 100%);
-    padding: 0 10px;
+    width: 100%;
+    padding: 20px 12px;
   }
 }
 
@@ -432,14 +693,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 10px;
+  justify-content: flex-start;
+  padding: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
 }
 
 /* 整体内容块略往上移，减轻「重心偏下」的感觉 */
 .guidContainer .guidLayout {
-  margin-top: -5vh;
+  margin-top: 0;
 }
 
 /* Agent 选中时：先放大再回落至略大（pop 动效） */
@@ -486,8 +749,25 @@
 }
 
 /* 底部快捷按钮：基础间距 + 安全区 */
+.guidFooter {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
 .guidQuickActions {
-  bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+  position: static;
+  transform: none;
+  flex-shrink: 0;
+}
+
+.guidQuickActions > div {
+  gap: 8px;
+}
+.guidQuickActions > div > div {
+  background: var(--glass-control);
+  border-color: var(--glass-edge) !important;
+  box-shadow: var(--glass-inset) !important;
 }
 
 @media (max-width: 768px) {
@@ -495,7 +775,7 @@
     justify-content: flex-start;
     overflow-y: auto;
     overflow-x: hidden;
-    padding-top: 20px;
+    padding-top: 0;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -505,8 +785,8 @@
 }
 
 /* 浅色占位符 */
-.lightPlaceholder :global(textarea::placeholder) {
-  color: #b4b5bc !important;
+.lightPlaceholder:global(textarea)::placeholder {
+  color: var(--glass-muted) !important;
   opacity: 1 !important;
 }
 

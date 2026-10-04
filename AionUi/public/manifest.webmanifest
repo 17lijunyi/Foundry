@@ -1,6 +1,6 @@
 {
-  "name": "产品经理工作台",
-  "short_name": "产品经理工作台",
+  "name": "Foundry",
+  "short_name": "Foundry",
   "description": "面向产品经理的 AI 专属工作台。",
   "start_url": "./",
   "scope": "./",

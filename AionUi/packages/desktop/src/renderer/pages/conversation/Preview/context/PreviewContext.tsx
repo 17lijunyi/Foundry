@@ -1117,8 +1117,10 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           if (success) {
             setTabs((prevTabs) =>
               prevTabs.map((t) => {
-                if (t.id === targetTabId) {
-                  return { ...t, isDirty: false, originalContent: t.content };
+                if (t.id === targetTabId && t.metadata?.fileRef && chatFileRefKey(t.metadata.fileRef) === saveKey) {
+                  // Only the captured text was written. Keep any typing that arrived
+                  // during the request as a newer, still-unsaved draft.
+                  return { ...t, isDirty: t.content !== tab.content, originalContent: tab.content };
                 }
                 return t;
               })

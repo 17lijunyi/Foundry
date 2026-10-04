@@ -40,13 +40,14 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({
   }, [diffsChanges, writeFileChanges]);
 
   const handleFileClick = useCallback(
-    (file: FileChangeItem) => {
+    (file: FileChangeItem, motionSource?: HTMLElement) => {
       const fileInfo = fileChanges.find((candidate) => candidate.fullPath === file.fullPath);
       if (!fileInfo) return;
 
       const { contentType, editable, language } = getFileTypeInfo(fileInfo.file_name);
 
       void launchPreview({
+        motionSource,
         relativePath: fileInfo.fullPath,
         file_name: fileInfo.file_name,
         contentType,
@@ -60,11 +61,12 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({
   );
 
   const handleDiffClick = useCallback(
-    (file: FileChangeItem) => {
+    (file: FileChangeItem, motionSource?: HTMLElement) => {
       const fileInfo = fileChanges.find((candidate) => candidate.fullPath === file.fullPath);
       if (!fileInfo) return;
 
       void launchPreview({
+        motionSource,
         file_name: fileInfo.file_name,
         contentType: 'diff',
         editable: false,
