@@ -35,9 +35,9 @@ export interface FileChangesPanelProps {
   /** 默认是否展开 / Default expanded state */
   defaultExpanded?: boolean;
   /** 点击预览按钮的回调 / Callback when preview button is clicked */
-  onFileClick?: (file: FileChangeItem) => void;
+  onFileClick?: (file: FileChangeItem, origin?: HTMLElement) => void;
   /** 点击变更统计的回调（+8/-3 数字触发，打开 diff 对比）/ Callback when change stats are clicked (opens diff view) */
-  onDiffClick?: (file: FileChangeItem) => void;
+  onDiffClick?: (file: FileChangeItem, origin?: HTMLElement) => void;
   /** 额外的类名 / Additional class name */
   className?: string;
 }
@@ -87,7 +87,7 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({
                   'flex items-center gap-4px rd-4px px-4px py-2px',
                   onDiffClick && 'cursor-pointer hover:bg-4 transition-colors'
                 )}
-                onClick={() => onDiffClick?.(file)}
+                onClick={(event) => onDiffClick?.(file, event.currentTarget)}
               >
                 {file.insertions > 0 && (
                   <span className='text-14px font-medium' style={{ color: diffColors.addition }}>
@@ -103,7 +103,7 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({
             )}
             <span
               className='flex items-center gap-4px text-12px text-t-secondary cursor-pointer rd-4px px-4px py-2px hover:bg-4'
-              onClick={() => onFileClick?.(file)}
+              onClick={(event) => onFileClick?.(file, event.currentTarget)}
             >
               <PreviewOpen className='line-height-8px' theme='outline' size='14' fill={iconColors.secondary} />
               {t('preview.preview')}
@@ -167,7 +167,7 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({
                     )}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDiffClick?.(file);
+                      onDiffClick?.(file, e.currentTarget);
                     }}
                   >
                     {file.insertions > 0 && (
@@ -187,7 +187,7 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({
                   className='group-hover:opacity-100 transition-opacity shrink-0 ms-4px flex items-center gap-4px text-12px text-t-secondary cursor-pointer rd-4px px-4px py-2px hover:bg-4'
                   onClick={(e) => {
                     e.stopPropagation();
-                    onFileClick?.(file);
+                    onFileClick?.(file, e.currentTarget);
                   }}
                 >
                   <PreviewOpen className='line-height-8px' theme='outline' size='14' fill={iconColors.secondary} />

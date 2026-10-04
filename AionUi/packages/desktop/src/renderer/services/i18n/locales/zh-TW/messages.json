@@ -97,5 +97,6 @@
   "requestDetails": "請求內容：",
   "delivery": {
     "pending": "未讀"
-  }
+  },
+  "viewSteps": "檢視步驟"
 }

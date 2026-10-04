@@ -97,5 +97,6 @@
   "requestDetails": "リクエスト内容:",
   "delivery": {
     "pending": "未読"
-  }
+  },
+  "viewSteps": "手順を表示"
 }

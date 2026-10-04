@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/common/branding', () => ({
-  APP_DISPLAY_NAME: '产品经理工作台',
+  APP_DISPLAY_NAME: 'Foundry',
   UPSTREAM_UPDATE_ENABLED: true,
 }));
 

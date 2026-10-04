@@ -97,5 +97,6 @@
   "requestDetails": "Detalles de la solicitud:",
   "delivery": {
     "pending": "No leído"
-  }
+  },
+  "viewSteps": "Ver pasos"
 }

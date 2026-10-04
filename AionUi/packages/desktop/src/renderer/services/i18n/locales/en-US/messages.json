@@ -97,5 +97,6 @@
   "requestDetails": "Request details:",
   "delivery": {
     "pending": "Unread"
-  }
+  },
+  "viewSteps": "View steps"
 }

@@ -12,9 +12,44 @@
  * Handles window minimize, maximize, close and other control operations
  */
 
-import { BrowserWindow } from 'electron';
+import { app, BrowserWindow } from 'electron';
+import path from 'node:path';
 import { ipcBridge } from '@/common';
 import { getCloseToTrayEnabled, getIsQuitting } from '@process/utils/tray';
+
+type NativeGlass = { update: (handle: Buffer, payload: string) => boolean };
+let nativeGlass: NativeGlass | null | undefined;
+const glassWindows = new WeakSet<BrowserWindow>();
+const glassButtonPositions = new WeakMap<BrowserWindow, { x: number; y: number }>();
+let glassWindow: BrowserWindow | undefined;
+
+/** Bind glass geometry to the main window, even while a child window has focus. */
+export function registerGlassWindow(window: BrowserWindow): void {
+  glassWindow = window;
+  // macOS redraws the traffic lights after native zoom/live-resize callbacks.
+  const restoreButtons = () =>
+    setImmediate(() => {
+      const position = glassButtonPositions.get(window);
+      if (position && !window.isDestroyed()) window.setWindowButtonPosition(position);
+    });
+  window.on('resized', restoreButtons);
+  window.on('maximize', restoreButtons);
+  window.on('unmaximize', restoreButtons);
+  window.once('closed', () => {
+    if (glassWindow === window) glassWindow = undefined;
+  });
+}
+
+function loadNativeGlass(): NativeGlass | null {
+  if (nativeGlass !== undefined) return nativeGlass;
+  try {
+    nativeGlass = require(path.join(app.getAppPath(), 'out/main/native/glass.node')) as NativeGlass;
+  } catch (error) {
+    console.warn('[Window] Native glass unavailable; using the readable surface fallback.', error);
+    nativeGlass = null;
+  }
+  return nativeGlass;
+}
 
 /**
  * Resolve the window targeted by title-bar controls.
@@ -56,6 +91,53 @@ export function registerWindowMaximizeListeners(window: BrowserWindow): void {
  * Register IPC handlers to respond to window control requests from renderer process
  */
 export function initWindowControlsBridge(): void {
+  ipcBridge.windowControls.updateGlass.provider(async (payload) => {
+    if (process.platform !== 'darwin') return false;
+    const window = glassWindow;
+    if (window?.isDestroyed()) return false;
+    if (!window || !payload || typeof payload.dark !== 'boolean' || !Array.isArray(payload.regions)) return false;
+    if (payload.regions.length > 3) return false;
+    const [width, height] = window.getContentSize();
+    const zoom = window.webContents.getZoomFactor();
+    if (
+      payload.regions.some(
+        (region) =>
+          !region ||
+          ![region.x, region.y, region.width, region.height, region.radius].every(Number.isFinite) ||
+          region.width < 0 ||
+          region.height < 0 ||
+          region.radius < 0
+      )
+    )
+      return false;
+    const regions = payload.regions.map((region) => ({
+      x: Math.max(0, Math.min(width, region.x * zoom)),
+      y: Math.max(0, Math.min(height, region.y * zoom)),
+      width: Math.min(width, region.width * zoom),
+      height: Math.min(height, region.height * zoom),
+      radius: Math.min(80, region.radius * zoom),
+    }));
+    const panel = regions[0];
+    if (panel) {
+      const position = { x: Math.round(panel.x + 18), y: Math.round(panel.y + 16) };
+      glassButtonPositions.set(window, position);
+      window.setWindowButtonVisibility(true);
+      window.setWindowButtonPosition(position);
+    }
+    const glass = loadNativeGlass();
+    const mounted =
+      glass?.update(window.getNativeWindowHandle(), JSON.stringify({ regions, dark: payload.dark })) ?? false;
+    if (mounted && !glassWindows.has(window)) {
+      glassWindows.add(window);
+      console.info(`[Window] Native glass mounted on ${regions.length} surfaces (window=${window.id}).`);
+    }
+    return mounted;
+  });
+  ipcBridge.windowControls.setPointerPassthrough.provider(async (ignore) => {
+    if (process.platform !== 'darwin' || typeof ignore !== 'boolean') return;
+    if (glassWindow && !glassWindow.isDestroyed()) glassWindow.setIgnoreMouseEvents(ignore, { forward: true });
+  });
+
   // 最小化窗口 / Minimize window
   ipcBridge.windowControls.minimize.provider(() => {
     const window = resolveControlWindow();

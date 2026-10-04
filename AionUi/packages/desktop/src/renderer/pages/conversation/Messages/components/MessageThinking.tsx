@@ -5,9 +5,10 @@
  */
 
 import type { IMessageThinking } from '@/common/chat/chatLib';
-import { Spin } from '@arco-design/web-react';
+import { useMotion } from '@/renderer/hooks/ui/useMotion';
+import { Button, Spin } from '@arco-design/web-react';
 import { Brain, Right } from '@icon-park/react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './MessageThinking.module.css';
 
@@ -45,13 +46,22 @@ const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) =
   });
   const startTimeRef = useRef<number>(message.created_at ?? Date.now());
   const bodyRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLSpanElement>(null);
+  const wasDoneRef = useRef(isDone);
+  const bodyId = useId();
+  const { animate } = useMotion();
 
   // Auto-collapse when status changes to done
   useEffect(() => {
-    if (isDone) {
+    if (isDone && !wasDoneRef.current) {
       setExpanded(false);
+      animate(summaryRef.current, [
+        { opacity: 0.5, transform: 'translateY(4px)' },
+        { opacity: 1, transform: 'translateY(0)' },
+      ]);
     }
-  }, [isDone]);
+    wasDoneRef.current = isDone;
+  }, [animate, isDone]);
 
   // Elapsed timer for active thinking
   useEffect(() => {
@@ -79,15 +89,31 @@ const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) =
 
   return (
     <div className={styles.container}>
-      <div className={styles.header} onClick={() => setExpanded((v) => !v)}>
+      <Button
+        type='text'
+        className={styles.header}
+        aria-expanded={expanded}
+        aria-controls={bodyId}
+        onClick={() => setExpanded((v) => !v)}
+      >
         <span className={styles.headerIcon}>{!isDone ? <Spin size={12} /> : <Brain theme='outline' size='14' />}</span>
-        <span className={styles.summary}>{summaryText}</span>
+        <span ref={summaryRef} className={styles.summary}>
+          {summaryText}
+        </span>
         <span className={`${styles.arrow} ${expanded ? styles.arrowExpanded : ''}`}>
           <Right theme='outline' size='12' />
         </span>
-      </div>
-      <div ref={bodyRef} className={`${styles.body} ${!expanded ? styles.collapsed : ''}`}>
-        {text}
+      </Button>
+      <div
+        id={bodyId}
+        aria-hidden={!expanded}
+        className={`${styles.bodyViewport} ${!expanded ? styles.collapsed : ''}`}
+      >
+        <div className={styles.bodyClip}>
+          <div ref={bodyRef} className={styles.body}>
+            {text}
+          </div>
+        </div>
       </div>
     </div>
   );

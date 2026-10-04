@@ -5,8 +5,11 @@
  */
 
 import MentionMenuShell from '@/renderer/components/chat/MentionMenuShell';
+import { useMotion } from '@/renderer/hooks/ui/useMotion';
+import { Button } from '@arco-design/web-react';
 import classNames from 'classnames';
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
+import styles from './SlashCommandMenu.module.css';
 
 export interface SlashCommandMenuItem {
   key: string;
@@ -39,6 +42,25 @@ const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
   onSelectItem,
   emptyText,
 }) => {
+  const listRef = useRef<HTMLDivElement>(null);
+  const opened = useRef(false);
+  const { animate } = useMotion();
+
+  useLayoutEffect(() => {
+    if (loading || items.length === 0 || opened.current) return;
+    opened.current = true;
+    listRef.current?.querySelectorAll('[role="option"]').forEach((option, index) => {
+      animate(
+        option,
+        [
+          { opacity: 0.25, transform: 'translateY(8px) rotate(-1deg)', transformOrigin: 'left bottom' },
+          { opacity: 1, transform: 'translateY(0) rotate(0deg)', transformOrigin: 'left bottom' },
+        ],
+        { duration: 240, delay: Math.min(index, 5) * 24 }
+      );
+    });
+  }, [animate, loading, items.length]);
+
   const renderLabel = (item: SlashCommandMenuItem) => {
     if (!item.highlightIndices?.length) {
       return item.label;
@@ -87,55 +109,54 @@ const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
     >
       {loading && <div className='px-10px py-12px text-13px text-t-secondary'>{loadingText}</div>}
       {!loading && items.length === 0 && <div className='px-10px py-12px text-13px text-t-secondary'>{emptyText}</div>}
-      {!loading &&
-        items.map((item, index) => (
-          <button
-            key={item.key}
-            type='button'
-            role='option'
-            aria-selected={index === activeIndex}
-            className={classNames(
-              'w-full text-start px-10px py-6px rounded-8px transition-all border border-solid outline-none cursor-pointer mb-2px last:mb-0',
-              {
+      <div ref={listRef}>
+        {!loading &&
+          items.map((item, index) => (
+            <Button
+              key={item.key}
+              type='text'
+              role='option'
+              aria-selected={index === activeIndex}
+              className={classNames(styles.option, {
                 'border-[var(--color-border-2)]': index === activeIndex,
                 'border-transparent hover:bg-[var(--color-fill-1)]': index !== activeIndex,
-              }
-            )}
-            style={{
-              minHeight: '38px',
-              background: index === activeIndex ? 'color-mix(in srgb, var(--aou-2) 88%, transparent)' : 'transparent',
-              boxShadow: undefined,
-            }}
-            onMouseEnter={() => onHoverItem(index)}
-            onClick={() => onSelectItem(item)}
-          >
-            <div className='flex items-center justify-between gap-8px'>
-              <div className='min-w-0 flex items-baseline gap-10px'>
-                <div
-                  className={classNames(
-                    'text-14px whitespace-nowrap',
-                    index === activeIndex ? 'text-t-primary font-semibold' : 'text-t-primary font-medium'
-                  )}
-                >
-                  {renderLabel(item)}
+              })}
+              style={{
+                minHeight: '38px',
+                background: index === activeIndex ? 'color-mix(in srgb, var(--aou-2) 88%, transparent)' : 'transparent',
+                boxShadow: undefined,
+              }}
+              onMouseEnter={() => onHoverItem(index)}
+              onClick={() => onSelectItem(item)}
+            >
+              <div className='flex items-center justify-between gap-8px'>
+                <div className='min-w-0 flex items-baseline gap-10px'>
+                  <div
+                    className={classNames(
+                      'text-14px whitespace-nowrap',
+                      index === activeIndex ? 'text-t-primary font-semibold' : 'text-t-primary font-medium'
+                    )}
+                  >
+                    {renderLabel(item)}
+                  </div>
+                  {item.description && <div className='text-12px text-t-secondary truncate'>{item.description}</div>}
                 </div>
-                {item.description && <div className='text-12px text-t-secondary truncate'>{item.description}</div>}
+                {item.badge && (
+                  <span
+                    className={classNames(
+                      'text-10px rounded-999px px-6px py-1px shrink-0',
+                      index === activeIndex
+                        ? 'text-t-primary bg-[var(--color-bg-1)]'
+                        : 'text-t-secondary bg-[var(--color-bg-1)]'
+                    )}
+                  >
+                    {item.badge}
+                  </span>
+                )}
               </div>
-              {item.badge && (
-                <span
-                  className={classNames(
-                    'text-10px rounded-999px px-6px py-1px shrink-0',
-                    index === activeIndex
-                      ? 'text-t-primary bg-[var(--color-bg-1)]'
-                      : 'text-t-secondary bg-[var(--color-bg-1)]'
-                  )}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </div>
-          </button>
-        ))}
+            </Button>
+          ))}
+      </div>
     </MentionMenuShell>
   );
 };

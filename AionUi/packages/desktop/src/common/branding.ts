@@ -5,10 +5,10 @@
  */
 
 /** The customer-facing name shown throughout the desktop app and WebUI. */
-export const APP_DISPLAY_NAME = '产品经理工作台';
+export const APP_DISPLAY_NAME = 'Foundry';
 
-/** Compact mark used where the full product name does not fit. */
-export const APP_MONOGRAM = 'PM';
+/** Stable storage identity, independent of the customer-facing product name. */
+export const APP_DATA_DIRECTORY = '产品经理工作台';
 
 /** Display name for the built-in assistant while retaining its compatibility id. */
 export const BUTLER_DISPLAY_NAME = '产品经理助手';

@@ -97,5 +97,6 @@
   "requestDetails": "İstek ayrıntıları:",
   "delivery": {
     "pending": "Okunmadı"
-  }
+  },
+  "viewSteps": "Adımları göster"
 }

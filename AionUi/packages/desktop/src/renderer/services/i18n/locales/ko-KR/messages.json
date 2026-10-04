@@ -97,5 +97,6 @@
   "requestDetails": "요청 내용:",
   "delivery": {
     "pending": "읽지 않음"
-  }
+  },
+  "viewSteps": "단계 보기"
 }

@@ -31,5 +31,15 @@
     "understand": "Familiarízate con este proyecto y explícame con palabras sencillas qué hace y por dónde empezar",
     "cleanup": "Encuentra archivos duplicados e inútiles en esta carpeta y lístalos para que los confirme",
     "create": "Créame una página personal bonita y ábrela cuando esté lista"
+  },
+  "glass": {
+    "workspace": "Espacio de trabajo",
+    "subtitle": "Da vida a tus ideas con tus asistentes de IA.",
+    "searchAssistants": "Buscar asistentes…",
+    "noAssistants": "No se encontraron asistentes",
+    "navigation": "Navegación principal",
+    "quickActions": "Accesos del espacio de trabajo",
+    "inputTitle": "¿En qué te gustaría trabajar hoy?",
+    "chooseAssistant": "Elige un asistente"
   }
 }

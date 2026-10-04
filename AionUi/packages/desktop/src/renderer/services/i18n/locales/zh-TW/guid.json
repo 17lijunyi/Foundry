@@ -13,5 +13,15 @@
     "specifyWorkspace": "選擇專案資料夾",
     "searchPlaceholder": "搜尋專案…",
     "noProject": "不使用專案"
+  },
+  "glass": {
+    "workspace": "工作空間",
+    "subtitle": "與 AI 助手一起，讓產品想法落地。",
+    "searchAssistants": "搜尋助手…",
+    "noAssistants": "找不到符合的助手",
+    "navigation": "主導覽",
+    "quickActions": "工作台快捷操作",
+    "inputTitle": "今天，想推進什麼？",
+    "chooseAssistant": "選擇助手"
   }
 }

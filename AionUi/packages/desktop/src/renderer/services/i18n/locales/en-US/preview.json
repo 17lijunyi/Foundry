@@ -176,5 +176,17 @@
   "zoomIn": "Zoom in",
   "zoomOut": "Zoom out",
   "zoomReset": "Reset view",
-  "diagramZoomHint": "Scroll to zoom • Drag to pan • ESC to close"
+  "diagramZoomHint": "Scroll to zoom • Drag to pan • ESC to close",
+  "revisionReview": {
+    "review": "Review changes",
+    "title": "Revision comparison",
+    "before": "Original",
+    "after": "Revised draft",
+    "adopt": "Adopt and save",
+    "saved": "Changes saved",
+    "undo": "Restore original to draft",
+    "undoHint": "Restore the original as an unsaved draft without overwriting the file on disk.",
+    "draftHint": "Review before adopting. Your draft is kept if saving fails.",
+    "empty": "Empty document"
+  }
 }

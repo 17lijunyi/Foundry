@@ -13,5 +13,15 @@
     "specifyWorkspace": "Selecionar pasta do projeto",
     "searchPlaceholder": "Procurar projetos…",
     "noProject": "Nenhum Projeto"
+  },
+  "glass": {
+    "workspace": "Espaço de trabalho",
+    "subtitle": "Transforme ideias em realidade com seus assistentes de IA.",
+    "searchAssistants": "Buscar assistentes…",
+    "noAssistants": "Nenhum assistente encontrado",
+    "navigation": "Navegação principal",
+    "quickActions": "Atalhos do espaço de trabalho",
+    "inputTitle": "No que você gostaria de trabalhar hoje?",
+    "chooseAssistant": "Escolha um assistente"
   }
 }

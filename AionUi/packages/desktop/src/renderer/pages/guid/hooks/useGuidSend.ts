@@ -58,7 +58,7 @@ export type GuidSendDeps = {
 };
 
 export type GuidSendResult = {
-  handleSend: () => Promise<void>;
+  handleSend: () => Promise<boolean>;
   sendMessageHandler: () => void;
   isButtonDisabled: boolean;
 };
@@ -101,7 +101,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
   const handleSend = useCallback(async () => {
     if (!selectedAssistantId) {
-      return;
+      return false;
     }
 
     const isCustomWorkspace = !!dir;
@@ -173,7 +173,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     if (assistantBackend === 'aionrs') {
       if (!current_model) {
         Message.warning(t('conversation.noModelConfigured'));
-        return;
+        return false;
       }
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
@@ -195,7 +195,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
         if (!conversation || !conversation.id) {
           Message.error(t('conversation.createFailed'));
-          return;
+          return false;
         }
 
         if (isCustomWorkspace) {
@@ -227,7 +227,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         console.error('Failed to create Aion CLI conversation:', error);
         throw error;
       }
-      return;
+      return true;
     }
 
     try {
@@ -249,7 +249,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       });
       if (!conversation || !conversation.id) {
         console.error('Failed to create ACP conversation - conversation object is null or missing id');
-        return;
+        return false;
       }
 
       if (isCustomWorkspace) {
@@ -277,6 +277,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       }
 
       await navigate(`/conversation/${conversation.id}`);
+      return true;
     } catch (error: unknown) {
       console.error('Failed to create ACP conversation:', error);
       throw error;
@@ -308,7 +309,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     sendingRef.current = true;
     setLoading(true);
     handleSend()
-      .then(() => {
+      .then((sent) => {
+        if (!sent) return;
         setInput('');
         setMentionOpen(false);
         setMentionQuery(null);

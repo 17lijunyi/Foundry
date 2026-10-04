@@ -1,0 +1,401 @@
+/* Shared optical surfaces. Tokens live on body so portal menus inherit the same material. */
+body {
+  --glass-canvas: #ccd3d8;
+  --glass-glow: #f3eee7;
+  --glass-cool: #aabfca;
+  --glass-warm: #bfbbb1;
+  --glass-panel: linear-gradient(135deg, rgb(255 255 255 / 46%), rgb(250 251 252 / 20%) 50%, rgb(255 255 255 / 32%));
+  --glass-floating: linear-gradient(125deg, rgb(255 255 255 / 60%), rgb(238 243 246 / 32%));
+  --glass-surface: rgb(255 255 255 / 25%);
+  --glass-content: rgb(255 255 255 / 13%);
+  --glass-sidebar: rgb(237 241 243 / 16%);
+  --glass-control: rgb(255 255 255 / 28%);
+  --glass-selected: rgb(255 255 255 / 65%);
+  --glass-popover: rgb(244 247 250 / 94%);
+  --glass-edge: rgb(255 255 255 / 66%);
+  --glass-line: rgb(70 87 103 / 12%);
+  --glass-shade: rgb(39 52 66 / 10%);
+  --glass-highlight: rgb(255 255 255 / 80%);
+  --glass-shadow: 0 20px 60px rgb(43 55 65 / 12%), 0 3px 10px rgb(43 55 65 / 6%);
+  --glass-inset:
+    inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 rgb(255 255 255 / 16%), inset 1px 0 0 rgb(255 255 255 / 22%);
+  --glass-focus: #497686;
+  --glass-ink: #26323c;
+  --glass-muted: #64717b;
+  --text-primary: var(--glass-ink);
+  --text-secondary: #53616d;
+  --color-text-1: var(--glass-ink);
+  --color-text-2: #53616d;
+  --color-text-3: var(--glass-muted);
+  --color-text-4: #89939b;
+  --bg-base: var(--glass-surface);
+  --bg-1: transparent;
+  --bg-2: var(--glass-sidebar);
+  --bg-3: var(--glass-line);
+  --bg-hover: var(--glass-control);
+  --bg-active: var(--glass-selected);
+  --color-bg-1: transparent;
+  --color-bg-2: var(--glass-surface);
+  --color-bg-3: var(--glass-control);
+  --color-bg-4: var(--glass-popover);
+  --color-bg-5: var(--glass-popover);
+  --color-bg-popup: var(--glass-popover);
+  --color-fill-1: rgb(255 255 255 / 13%);
+  --color-fill-2: var(--glass-control);
+  --color-fill-3: var(--glass-selected);
+  --color-border-1: var(--glass-line);
+  --color-border-2: var(--glass-line);
+  --color-border-3: var(--glass-edge);
+  --border-base: var(--glass-line);
+  --border-light: var(--glass-line);
+  --fill-0: var(--glass-selected);
+  --dialog-fill-0: var(--glass-surface);
+  --message-user-bg: rgb(255 255 255 / 48%);
+  --message-tips-bg: var(--glass-control);
+  --workspace-btn-bg: var(--glass-control);
+  --color-guid-agent-bar: var(--glass-control);
+  background: var(--glass-canvas);
+  color: var(--text-primary);
+}
+
+body[arco-theme='dark'] {
+  --glass-canvas: #22282d;
+  --glass-glow: #716d65;
+  --glass-cool: #354c5b;
+  --glass-warm: #4e4841;
+  --glass-panel: linear-gradient(130deg, rgb(202 207 208 / 14%), rgb(87 93 99 / 14%) 50%, rgb(173 183 193 / 12%));
+  --glass-floating: linear-gradient(135deg, rgb(192 198 202 / 20%), rgb(85 95 104 / 26%));
+  --glass-surface: rgb(205 218 227 / 6%);
+  --glass-content: rgb(22 30 37 / 10%);
+  --glass-sidebar: rgb(24 28 33 / 12%);
+  --glass-control: rgb(214 225 236 / 8%);
+  --glass-selected: rgb(225 233 239 / 20%);
+  --glass-popover: rgb(48 55 62 / 97%);
+  --glass-edge: rgb(244 249 255 / 24%);
+  --glass-line: rgb(222 234 246 / 10%);
+  --glass-shade: rgb(0 0 0 / 16%);
+  --glass-highlight: rgb(255 255 255 / 32%);
+  --glass-shadow: 0 22px 65px rgb(0 0 0 / 24%), 0 3px 12px rgb(0 0 0 / 12%);
+  --glass-inset:
+    inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 rgb(255 255 255 / 7%), inset 1px 0 0 rgb(255 255 255 / 8%);
+  --glass-focus: #afd6e3;
+  --glass-ink: #f0f3f5;
+  --glass-muted: #b2bec7;
+  --text-secondary: #c4cdd4;
+  --color-text-2: #c4cdd4;
+  --color-text-4: #8898a5;
+  --color-fill-1: rgb(255 255 255 / 4%);
+  --message-user-bg: rgb(202 221 239 / 14%);
+}
+
+/* Arco declares its dark palette directly on body; keep semantic surfaces consistent there too. */
+html body,
+html body[arco-theme='dark'] {
+  --color-text-1: var(--glass-ink);
+  --color-text-2: var(--text-secondary);
+  --color-text-3: var(--glass-muted);
+  --color-bg-1: transparent;
+  --color-bg-2: var(--glass-surface);
+  --color-bg-3: var(--glass-control);
+  --color-bg-4: var(--glass-popover);
+  --color-bg-5: var(--glass-popover);
+  --color-bg-popup: var(--glass-popover);
+  --color-fill-1: var(--glass-content);
+  --color-fill-2: var(--glass-control);
+  --color-fill-3: var(--glass-selected);
+  --color-border-1: var(--glass-line);
+  --color-border-2: var(--glass-line);
+  --color-border-3: var(--glass-edge);
+}
+
+/* Ambient light supplies depth without a photographic wallpaper. */
+body #root {
+  background:
+    radial-gradient(ellipse at 38% -20%, var(--glass-glow), transparent 65%),
+    radial-gradient(ellipse at 100% 82%, var(--glass-cool), transparent 62%),
+    radial-gradient(ellipse at 2% 100%, var(--glass-warm), transparent 62%), var(--glass-canvas);
+}
+
+body .app-shell {
+  position: relative;
+  box-sizing: border-box;
+  padding: 32px clamp(24px, 3vw, 64px) 104px clamp(108px, 9vw, 180px);
+  isolation: isolate;
+}
+
+body .glass-window-panel > .app-titlebar {
+  flex-shrink: 0;
+  width: 100%;
+  height: 48px;
+  box-sizing: border-box;
+  border: 0;
+  background: transparent !important;
+}
+
+body .app-titlebar__button {
+  border-radius: 50%;
+  color: var(--text-secondary);
+}
+body .app-titlebar__button:hover {
+  background: var(--glass-selected);
+}
+body .app-titlebar__brand {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+body .glass-window-panel {
+  position: relative;
+  max-width: 1480px;
+  align-self: center;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--glass-edge);
+  border-radius: 30px;
+  background: var(--glass-panel);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+  backdrop-filter: blur(40px) saturate(145%);
+  -webkit-backdrop-filter: blur(40px) saturate(145%);
+}
+
+body .glass-window-panel > .layout {
+  width: 100%;
+  background: transparent;
+  overflow: hidden;
+}
+
+/* Native windows contain three independent AppKit surfaces, with clear space between them. */
+html[data-glass-desktop='true'],
+html[data-glass-desktop='true'] body,
+html[data-glass-desktop='true'] body #root {
+  background: transparent !important;
+}
+html[data-glass-desktop='true'] body {
+  --glass-panel: rgb(241 245 247 / 88%);
+  --glass-floating: rgb(244 247 249 / 90%);
+}
+html[data-glass-desktop='true'] body[arco-theme='dark'] {
+  --glass-panel: rgb(32 39 45 / 88%);
+  --glass-floating: rgb(40 47 54 / 90%);
+}
+html[data-native-glass='true'] body {
+  --glass-panel: rgb(255 255 255 / 9%);
+  --glass-floating: rgb(255 255 255 / 12%);
+}
+html[data-native-glass='true'] body[arco-theme='dark'] {
+  --glass-panel: rgb(20 26 31 / 12%);
+  --glass-floating: rgb(27 34 40 / 64%);
+}
+html[data-native-glass='true'] .glass-window-panel,
+html[data-native-glass='true'] [data-glass-region] {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body .app-shell .layout-sider {
+  background: var(--glass-sidebar) !important;
+  border-inline-end: 1px solid var(--glass-line);
+  padding: 10px 5px 0;
+}
+
+body .layout-sider-header {
+  padding: 18px 17px 24px;
+  gap: 10px;
+}
+body .layout-sider-header .font-semibold {
+  font-size: 15px;
+  letter-spacing: -0.3px;
+}
+body .app-shell .layout-content {
+  background: var(--glass-content) !important;
+  min-width: 0;
+}
+body .sider-footer {
+  padding-top: 12px;
+  padding-bottom: 14px;
+}
+body .settings-sider__group-header {
+  color: var(--glass-muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+body .settings-sider > div > div.cursor-pointer {
+  border-radius: 12px;
+}
+body .sider-section-label,
+body .sider-action-btn {
+  background: transparent;
+}
+body .layout-sider .sider-model-bench-entry {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  padding-inline: 12px;
+  color: var(--text-primary);
+}
+
+/* Inputs and floating controls share a shallow, refractive edge. */
+body :is(.arco-input-inner-wrapper, .arco-input-tag, .arco-select-view, .arco-input-number),
+body .arco-select .arco-select-view {
+  background: var(--glass-control);
+  border: 1px solid var(--glass-line);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 1px 2px var(--glass-shade),
+    0 1px 0 var(--glass-highlight);
+}
+body .arco-textarea {
+  background: var(--glass-control);
+  border: 1px solid var(--glass-line);
+  border-radius: 16px;
+  color: var(--text-primary);
+}
+body .arco-btn {
+  border-radius: 12px;
+}
+body .arco-btn-secondary {
+  background: var(--glass-selected);
+  box-shadow: var(--glass-inset);
+}
+body .arco-btn-primary {
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 3px 10px var(--glass-shade);
+}
+body :is(.arco-select-popup, .arco-dropdown, .arco-popover-content, .arco-modal, .arco-drawer-content) {
+  background: var(--glass-popover);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+  border-radius: 18px;
+  backdrop-filter: blur(32px) saturate(145%);
+  -webkit-backdrop-filter: blur(32px) saturate(145%);
+}
+body .arco-modal-header,
+body .arco-modal-footer {
+  border-color: var(--glass-line);
+}
+body .arco-tabs-nav::before {
+  background-color: var(--glass-line);
+}
+body .arco-collapse,
+body .arco-collapse-item {
+  border-color: var(--glass-line);
+  border-radius: 16px;
+}
+body .arco-collapse-item-header {
+  background: transparent;
+}
+body .arco-card {
+  border: 1px solid var(--glass-edge);
+  background: var(--glass-surface);
+  border-radius: 20px;
+  box-shadow: var(--glass-inset);
+}
+body .arco-table-th,
+body .arco-table-td {
+  background: var(--glass-surface);
+  border-color: var(--glass-line);
+}
+
+body .arco-empty-description {
+  color: var(--glass-muted);
+}
+
+/* Settings and conversations inherit the material instead of painting opaque sheets. */
+body .settings-page-wrapper,
+body .settings-page-content {
+  background: transparent !important;
+}
+body .settings-page-content .bg-2.rd-16px {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-inset);
+  border-radius: 20px;
+}
+body .settings-page-wrapper .arco-card {
+  border-radius: 20px;
+}
+body .chat-layout-header--glass {
+  background: var(--glass-surface) !important;
+  border-bottom: 1px solid var(--glass-line);
+}
+body .chat-layout-header--glass::after {
+  display: none;
+}
+body .sendbox-panel,
+body .guid-input-card-shell {
+  background: var(--glass-surface) !important;
+  border: 1px solid var(--glass-edge);
+  box-shadow:
+    var(--glass-inset),
+    0 7px 24px var(--glass-shade) !important;
+  border-radius: 24px;
+}
+body .sendbox-panel:focus-within,
+body .guid-input-card-shell:focus-within {
+  border-color: var(--glass-focus) !important;
+}
+
+body :is(button, [role='button']):focus-visible {
+  outline: 2px solid var(--glass-focus);
+  outline-offset: 3px;
+}
+
+body .arco-input-inner-wrapper:focus-within,
+body .arco-select-focused .arco-select-view {
+  border-color: var(--glass-focus);
+}
+
+@media (min-width: 1800px) {
+  body .app-shell {
+    padding-top: 100px;
+    padding-bottom: 132px;
+  }
+}
+@media (max-width: 1050px) {
+  body .app-shell {
+    padding: 24px 20px 88px 92px;
+  }
+  body .layout-sider-header {
+    padding-inline: 10px;
+  }
+}
+@media (max-height: 720px) and (min-width: 768px) {
+  body .app-shell {
+    padding-top: 18px;
+    padding-bottom: 88px;
+  }
+}
+@media (max-width: 767px) {
+  body .app-shell {
+    padding: 8px;
+  }
+  body .glass-window-panel {
+    border-radius: 22px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  body .app-shell .layout-sider {
+    background: var(--glass-popover) !important;
+  }
+  body .app-titlebar--mobile {
+    background: transparent !important;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  body {
+    --glass-panel: #eef1f3;
+    --glass-floating: #f1f4f6;
+    --glass-surface: #e5eaee;
+  }
+  body[arco-theme='dark'] {
+    --glass-panel: #303941;
+    --glass-floating: #39444e;
+    --glass-surface: #36414b;
+  }
+  body .glass-window-panel {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

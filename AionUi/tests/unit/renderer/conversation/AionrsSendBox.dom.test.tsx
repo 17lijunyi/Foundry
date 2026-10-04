@@ -305,10 +305,24 @@ const modelSelection = {
 describe('AionrsSendBox', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    enqueueMock.mockReturnValue({ id: 'new-queued', input: 'hello world', files: [], created_at: Date.now() });
     ensureConversationRuntimeMock.mockResolvedValue({ recovered: false, config_options: [], runtime: null });
     useTeamPermissionMock.mockReturnValue(null);
     draftContentRef.current = '';
     runtimeViewIsProcessingRef.current = false;
+  });
+
+  it('keeps the current draft and attachments when the draft box rejects an item', async () => {
+    draftContentRef.current = 'hello world';
+    enqueueMock.mockReturnValue(null);
+    render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
+    await waitFor(() => expect(ensureConversationRuntimeMock).toHaveBeenCalledWith('conv-1'));
+    const props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as { onAddToDraft?: () => void };
+    draftMutateMock.mockClear();
+    await act(async () => props.onAddToDraft?.());
+    expect(enqueueMock).toHaveBeenCalled();
+    expect(clearFilesMock).not.toHaveBeenCalled();
+    expect(draftMutateMock).not.toHaveBeenCalled();
   });
 
   it('does not warm up team session when draft content changes', async () => {

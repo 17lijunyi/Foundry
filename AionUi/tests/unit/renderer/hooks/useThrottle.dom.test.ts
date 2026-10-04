@@ -6,7 +6,7 @@
 
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import useThrottle from '@/renderer/hooks/ui/useThrottle';
+import useThrottle from '@/renderer/hooks/ui/timing/useThrottle';
 
 describe('useThrottle', () => {
   beforeEach(() => {

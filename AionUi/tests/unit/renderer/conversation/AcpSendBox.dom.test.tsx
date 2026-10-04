@@ -343,6 +343,7 @@ const makeMessageState = (): UseAcpMessageReturn => ({
 describe('AcpSendBox', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    enqueueMock.mockReturnValue({ id: 'new-queued', input: 'hello world', files: [], created_at: Date.now() });
     isMobileMock.current = false;
     mobileActionSheetEntries.current = [];
     runtimeViewMock.hydrated = true;
@@ -361,6 +362,25 @@ describe('AcpSendBox', () => {
       reload: vi.fn(),
       setConfigOption: vi.fn(),
     });
+  });
+
+  it('keeps the current draft and attachments when the draft box rejects an item', async () => {
+    draftContentRef.current = 'hello world';
+    enqueueMock.mockReturnValue(null);
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='claude'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+    const props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as { onAddToDraft?: () => void };
+    draftMutateMock.mockClear();
+    await act(async () => props.onAddToDraft?.());
+    expect(enqueueMock).toHaveBeenCalled();
+    expect(clearFilesMock).not.toHaveBeenCalled();
+    expect(draftMutateMock).not.toHaveBeenCalled();
   });
 
   it('resets ACP loading state when sendMessage fails before any stream error arrives', async () => {

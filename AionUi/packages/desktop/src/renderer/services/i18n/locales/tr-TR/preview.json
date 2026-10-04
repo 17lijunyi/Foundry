@@ -176,5 +176,17 @@
   "zoomIn": "Yakınlaştır",
   "zoomOut": "Uzaklaştır",
   "zoomReset": "Görünümü sıfırla",
-  "diagramZoomHint": "Yakınlaştırmak için kaydırın • Taşımak için sürükleyin • ESC ile kapatın"
+  "diagramZoomHint": "Yakınlaştırmak için kaydırın • Taşımak için sürükleyin • ESC ile kapatın",
+  "revisionReview": {
+    "review": "Değişiklikleri karşılaştır",
+    "title": "Sürüm karşılaştırması",
+    "before": "Orijinal",
+    "after": "Düzenlenmiş taslak",
+    "adopt": "Uygula ve kaydet",
+    "saved": "Değişiklikler kaydedildi",
+    "undo": "Orijinali taslağa geri yükle",
+    "undoHint": "Diskteki dosyanın üzerine yazmadan orijinali kaydedilmemiş bir taslak olarak geri yükler.",
+    "draftHint": "Uygulamadan önce karşılaştırın. Kaydetme başarısız olursa taslağınız korunur.",
+    "empty": "Boş belge"
+  }
 }

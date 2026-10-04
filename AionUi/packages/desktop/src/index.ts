@@ -23,6 +23,7 @@ import * as path from 'path';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
+import { registerGlassWindow } from './process/bridge/windowControlsBridge';
 import { startBackendOrExit } from './process/startup/backendStartup';
 import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
@@ -482,13 +483,15 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     minWidth: MIN_WINDOW_WIDTH,
     minHeight: MIN_WINDOW_HEIGHT,
     show: false, // Hide until CSS is loaded to prevent FOUC
-    backgroundColor: '#ffffff',
+    backgroundColor: process.platform === 'darwin' ? '#00000000' : '#ffffff',
     autoHideMenuBar: true,
     // Set icon for Windows/Linux in development mode
     ...(devIcon && process.platform !== 'darwin' ? { icon: devIcon } : {}),
     // Custom titlebar configuration / 自定义标题栏配置
     ...(process.platform === 'darwin'
       ? {
+          transparent: true,
+          hasShadow: false,
           titleBarStyle: 'hidden',
           // Align traffic-light vertical center with the titlebar button centers.
           // Titlebar is 45px; buttons are 36px flex-centered → button center y≈22.5.
@@ -501,9 +504,12 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       webviewTag: true, // 启用 webview 标签用于 HTML 预览 / Enable webview tag for HTML preview
+      // Keep Chromium aligned with live AppKit glass while an inactive window resizes.
+      ...(process.platform === 'darwin' ? { backgroundThrottling: false } : {}),
     },
   });
   console.log(`[AionUi] Main window created (id=${mainWindow.id})`);
+  registerGlassWindow(mainWindow);
 
   scheduleStartupLogReport(mainWindow);
 

@@ -6,6 +6,7 @@ import Markdown from '@renderer/components/Markdown';
 import { loadHistory, loadModels, runComparison, saveRecord } from './client';
 import type { BenchModel, BenchRecord, BenchResult } from './types';
 import { modelKey } from './types';
+import { BenchRunStatus } from './BenchRunStatus';
 import styles from './ModelBench.module.css';
 
 const ModelBench: React.FC = () => {
@@ -192,15 +193,7 @@ const ModelBench: React.FC = () => {
                 <strong>{result.target.model}</strong>
                 <span>{result.target.provider_name}</span>
               </div>
-              <div className={styles.status} role='status'>
-                <Tag>{t(`common.modelBench.status.${result.status}`)}</Tag>
-                <span>
-                  {(
-                    (result.status === 'running' ? Math.max(0, now - (result.startedAt ?? now)) : result.elapsed) / 1000
-                  ).toFixed(1)}{' '}
-                  s
-                </span>
-              </div>
+              <BenchRunStatus result={result} now={now} />
               <div className={styles.answer}>
                 {result.text ? (
                   <Markdown>{result.text}</Markdown>

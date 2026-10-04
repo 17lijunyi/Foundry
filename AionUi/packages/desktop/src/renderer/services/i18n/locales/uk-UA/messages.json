@@ -103,5 +103,6 @@
   "requestDetails": "Деталі запиту:",
   "delivery": {
     "pending": "Непрочитано"
-  }
+  },
+  "viewSteps": "Переглянути кроки"
 }

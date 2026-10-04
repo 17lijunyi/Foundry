@@ -5,10 +5,13 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMessageThinking } from '@/common/chat/chatLib';
 import MessageThinking from '@/renderer/pages/conversation/Messages/components/MessageThinking';
+
+const animateMock = vi.hoisted(() => vi.fn());
+vi.mock('@/renderer/hooks/ui/useMotion', () => ({ useMotion: () => ({ animate: animateMock }) }));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -34,6 +37,7 @@ function createThinkingMessage(createdAt: number): IMessageThinking {
 describe('MessageThinking', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    animateMock.mockClear();
   });
 
   afterEach(() => {
@@ -54,5 +58,25 @@ describe('MessageThinking', () => {
     render(<MessageThinking message={createThinkingMessage(createdAt)} />);
 
     expect(screen.getByText('Thinking... · 7s')).toBeInTheDocument();
+  });
+
+  it('folds a completed thought once and keeps a manually reopened transcript open during later updates', () => {
+    const message = createThinkingMessage(Date.now());
+    const { rerender } = render(<MessageThinking message={message} />);
+    const done: IMessageThinking = { ...message, content: { ...message.content, status: 'done', duration: 2000 } };
+    rerender(<MessageThinking message={done} />);
+    expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(screen.getByRole('button'));
+    rerender(<MessageThinking message={{ ...done, content: { ...done.content, content: 'final transcript' } }} />);
+    expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'true');
+    expect(animateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not replay completion for a finished thought loaded from history', () => {
+    const message = createThinkingMessage(Date.now());
+    render(<MessageThinking message={{ ...message, content: { ...message.content, status: 'done' } }} />);
+    expect(animateMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'false');
   });
 });

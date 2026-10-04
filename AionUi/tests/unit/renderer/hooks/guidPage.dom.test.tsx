@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -184,7 +184,7 @@ vi.mock('@/renderer/pages/guid/hooks/useTypewriterPlaceholder', () => ({
   useTypewriterPlaceholder: () => '',
 }));
 
-vi.mock('@/renderer/pages/guid/components/AssistantSelectionArea', () => ({
+vi.mock('@/renderer/pages/guid/components/AssistantGallery', () => ({
   default: (props: Record<string, unknown>) => {
     capturedAssistantSelectionAreaProps.push(props);
     return <div data-testid='assistant-selection-area' />;
@@ -432,7 +432,7 @@ describe('GuidPage', () => {
 
     expect(screen.queryByLabelText('common.back')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Assistant Details')).not.toBeInTheDocument();
-    expect(screen.getByText('conversation.welcome.title')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'guid.glass.inputTitle' })).toBeInTheDocument();
     expect(screen.getByTestId('assistant-selection-area')).toBeInTheDocument();
     const latestAssistantSelectionAreaProps = capturedAssistantSelectionAreaProps.at(-1);
     const latestGuidActionRowProps = capturedGuidActionRowProps.at(-1);
@@ -512,6 +512,24 @@ describe('GuidPage', () => {
 
     expect(promptButton.className).toContain('!whitespace-normal');
     expect(promptButton.className).toContain('!break-words');
+  });
+
+  it.each([
+    ['builtin', 'Open Foundry on my phone'],
+    ['user', 'Open AionUi on my phone'],
+  ])('uses the correct brand in %s recommendations and inserts the displayed prompt', (source, expected) => {
+    swrMock.useSWRMock.mockImplementation((key: string | null) => ({
+      data: key?.startsWith('guid.assistant.detail.')
+        ? {
+            ...assistantDetailFixture,
+            source,
+            prompts: { recommended: ['Open AionUi on my phone'], recommended_i18n: {} },
+          }
+        : null,
+    }));
+    render(<GuidPage />);
+    fireEvent.click(screen.getByRole('button', { name: expected }));
+    expect(guidInputMock.setInput).toHaveBeenCalledWith(expected);
   });
 
   it('falls back to default instruction prompts when the selected assistant has no recommendations', () => {

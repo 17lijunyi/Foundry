@@ -14,6 +14,7 @@ import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
 import FeedbackReportModal from './FeedbackReportModal';
 import { ipcBridge } from '@/common';
 import { APP_DISPLAY_NAME, UPSTREAM_UPDATE_ENABLED } from '@/common/branding';
+import appLogo from '@renderer/assets/logos/brand/app.png';
 import { getIncludePrerelease, runUpdateCheck } from '@/renderer/components/settings/checkForUpdatesShared';
 import { UPDATE_AVAILABLE_EVENT } from '@/renderer/components/settings/useUpdateNotificationController';
 import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
@@ -150,6 +151,7 @@ const AboutModalContent: React.FC = () => {
         <div className='flex flex-col max-w-500px mx-auto'>
           {/* App Info Section */}
           <div className='flex flex-col items-center pb-24px'>
+            <img src={appLogo} alt='' className='size-72px object-contain mb-12px' draggable={false} />
             <Typography.Title heading={3} className='text-24px font-bold text-t-primary mb-8px'>
               {APP_DISPLAY_NAME}
             </Typography.Title>

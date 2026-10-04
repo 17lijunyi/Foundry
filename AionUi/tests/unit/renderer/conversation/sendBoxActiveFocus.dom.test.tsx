@@ -6,11 +6,22 @@
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React, { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { SWRConfig } from 'swr';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getSendBoxDraftHook } from '@/renderer/hooks/chat/useSendBoxDraft';
 
-const { layoutState } = vi.hoisted(() => ({
-  layoutState: { isMobile: false },
+const { layoutState, animateMock, cancelMotionMock } = vi.hoisted(() => ({
+  layoutState: { isMobile: false, conversationId: 'sendbox-active-focus-conversation' },
+  animateMock: vi.fn(),
+  cancelMotionMock: vi.fn(),
 }));
+vi.mock('@/renderer/hooks/ui/useMotion', () => ({
+  useMotion: () => ({ animate: animateMock, cancel: cancelMotionMock }),
+}));
+beforeEach(() => {
+  animateMock.mockClear();
+  layoutState.conversationId = 'sendbox-active-focus-conversation';
+});
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -37,7 +48,7 @@ vi.mock('@/renderer/hooks/chat/useInputFocusRing', () => ({
 
 vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
   useConversationContextSafe: () => ({
-    conversation_id: 'sendbox-active-focus-conversation',
+    conversation_id: layoutState.conversationId,
     type: 'acp',
   }),
 }));
@@ -154,7 +165,117 @@ const SendBoxHarness = ({
   );
 };
 
+const usePersistedDraft = getSendBoxDraftHook('acp', { _type: 'acp', content: '', atPath: [], uploadFile: [] });
+const PersistedDraftHarness = ({ onSend }: { onSend: (message: string) => Promise<void | false> }) => {
+  const { data, mutate } = usePersistedDraft(layoutState.conversationId);
+  return (
+    <SendBox
+      value={data?.content ?? ''}
+      onChange={(content) => mutate((previous) => ({ ...previous, content }))}
+      onSend={onSend}
+    />
+  );
+};
+
 describe('SendBox active-controlled focus', () => {
+  it('restores a failed submission to its original persisted draft after switching conversations', async () => {
+    let reject!: (error: Error) => void;
+    const onSend = vi.fn(
+      () =>
+        new Promise<void>((_resolve, rejectRequest) => {
+          reject = rejectRequest;
+        })
+    );
+    const cache = new Map();
+    layoutState.conversationId = 'rejected-draft-conversation-a';
+    const view = () => (
+      <SWRConfig value={{ provider: () => cache }}>
+        <PersistedDraftHarness onSend={onSend} />
+      </SWRConfig>
+    );
+    const { rerender } = render(view());
+    const input = screen.getByTestId('sendbox-input');
+    fireEvent.change(input, { target: { value: 'message for A' } });
+    await waitFor(() => expect(input).toHaveValue('message for A'));
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    fireEvent.change(input, { target: { value: 'new draft for A' } });
+    await waitFor(() => expect(input).toHaveValue('new draft for A'));
+
+    layoutState.conversationId = 'rejected-draft-conversation-b';
+    rerender(view());
+    fireEvent.change(input, { target: { value: 'draft for B' } });
+    await waitFor(() => expect(input).toHaveValue('draft for B'));
+    expect(screen.getByTestId('sendbox-send-btn')).not.toBeDisabled();
+    await act(async () => reject(new Error('request from A failed')));
+    expect(input).toHaveValue('draft for B');
+
+    layoutState.conversationId = 'rejected-draft-conversation-a';
+    rerender(view());
+    await waitFor(() => expect(input).toHaveValue('new draft for A\nmessage for A'));
+    expect(onSend).toHaveBeenCalledTimes(1);
+    expect(animateMock).not.toHaveBeenCalled();
+  });
+
+  it('unlocks a reused composer on conversation change and ignores an old failed request', async () => {
+    let reject!: (error: Error) => void;
+    const onSend = vi.fn(
+      () =>
+        new Promise<void>((_resolve, rejectRequest) => {
+          reject = rejectRequest;
+        })
+    );
+    const { rerender } = render(<SendBoxHarness initialValue='old conversation draft' onSend={onSend} />);
+    fireEvent.keyDown(screen.getByTestId('sendbox-input'), { key: 'Enter', code: 'Enter' });
+    layoutState.conversationId = 'new-conversation';
+    rerender(<SendBoxHarness onSend={onSend} />);
+    const input = screen.getByTestId('sendbox-input');
+    fireEvent.change(input, { target: { value: 'new conversation draft' } });
+    expect(screen.getByTestId('sendbox-send-btn')).not.toBeDisabled();
+    await act(async () => reject(new Error('old request failed')));
+    expect(input).toHaveValue('new conversation draft');
+    expect(animateMock).not.toHaveBeenCalled();
+  });
+
+  it('shows sender feedback only after the parent accepts the message', async () => {
+    let accept!: (result: void) => void;
+    const onSend = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          accept = resolve;
+        })
+    );
+    render(<SendBoxHarness initialValue='send this' onSend={onSend} />);
+    fireEvent.keyDown(screen.getByTestId('sendbox-input'), { key: 'Enter', code: 'Enter' });
+    expect(animateMock).not.toHaveBeenCalled();
+    await act(async () => accept());
+    expect(animateMock).toHaveBeenCalled();
+  });
+
+  it('restores a rejected request without playing a successful-send motion', async () => {
+    render(<SendBoxHarness initialValue='keep this' onSend={vi.fn().mockRejectedValue(new Error('offline'))} />);
+    const input = screen.getByTestId('sendbox-input');
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    await waitFor(() => expect(input).toHaveValue('keep this'));
+    expect(animateMock).not.toHaveBeenCalled();
+  });
+
+  it('preserves new typing when a previous send is rejected', async () => {
+    let reject!: (error: Error) => void;
+    const onSend = vi.fn(
+      () =>
+        new Promise<void>((_resolve, rejectRequest) => {
+          reject = rejectRequest;
+        })
+    );
+    render(<SendBoxHarness initialValue='first message' onSend={onSend} />);
+    const input = screen.getByTestId('sendbox-input');
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    fireEvent.change(input, { target: { value: 'new draft' } });
+    await act(async () => reject(new Error('offline')));
+    expect(input).toHaveValue('new draft\nfirst message');
+    expect(animateMock).not.toHaveBeenCalled();
+  });
+
   it('keeps Enter mapped to Send while Draft box has its own icon action', async () => {
     const onSend = vi.fn().mockResolvedValue(undefined);
     const onAddToDraft = vi.fn();

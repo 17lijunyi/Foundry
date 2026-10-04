@@ -6,9 +6,13 @@
 
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ConversationCommandQueueItem } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
+
+const { animateMock } = vi.hoisted(() => ({ animateMock: vi.fn() }));
+vi.mock('@/renderer/hooks/ui/useMotion', () => ({ useMotion: () => ({ animate: animateMock, cancel: vi.fn() }) }));
+beforeEach(() => animateMock.mockClear());
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -88,11 +92,29 @@ const renderPanel = (overrides: Partial<React.ComponentProps<typeof CommandQueue
     ...overrides,
   };
 
-  render(<CommandQueuePanel {...props} />);
-  return props;
+  const view = render(<CommandQueuePanel {...props} />);
+  return { ...props, rerender: view.rerender };
 };
 
 describe('CommandQueuePanel', () => {
+  it('animates a newly queued item once without replaying on edits or sorting', () => {
+    const props = renderPanel();
+    expect(animateMock).not.toHaveBeenCalled();
+    const added = { ...item, id: 'queued-new', created_at: Date.now() + 1 };
+    props.rerender(<CommandQueuePanel {...props} items={[item, added]} />);
+    expect(animateMock).toHaveBeenCalledTimes(2);
+    props.rerender(<CommandQueuePanel {...props} items={[{ ...added, input: 'edited draft' }, item]} />);
+    expect(animateMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps restored history and removed-then-restored queue items still', () => {
+    const props = renderPanel({ items: [] });
+    props.rerender(<CommandQueuePanel {...props} items={[item]} />);
+    props.rerender(<CommandQueuePanel {...props} items={[]} />);
+    props.rerender(<CommandQueuePanel {...props} items={[item]} />);
+    expect(animateMock).not.toHaveBeenCalled();
+  });
+
   it('renders the three per-item actions: send now, edit, remove', () => {
     renderPanel();
 

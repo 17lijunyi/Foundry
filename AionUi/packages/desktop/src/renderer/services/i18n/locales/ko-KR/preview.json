@@ -176,5 +176,17 @@
   "zoomIn": "확대",
   "zoomOut": "축소",
   "zoomReset": "보기 재설정",
-  "diagramZoomHint": "스크롤로 확대 • 드래그로 이동 • ESC로 닫기"
+  "diagramZoomHint": "스크롤로 확대 • 드래그로 이동 • ESC로 닫기",
+  "revisionReview": {
+    "review": "변경 내용 비교",
+    "title": "수정 내용 비교",
+    "before": "원문",
+    "after": "수정된 초안",
+    "adopt": "적용 후 저장",
+    "saved": "변경 내용 저장됨",
+    "undo": "원문을 초안으로 복원",
+    "undoHint": "디스크의 파일을 덮어쓰지 않고 원문을 저장되지 않은 초안으로 복원합니다.",
+    "draftHint": "비교 후 적용하세요. 저장에 실패해도 초안은 유지됩니다.",
+    "empty": "빈 문서"
+  }
 }

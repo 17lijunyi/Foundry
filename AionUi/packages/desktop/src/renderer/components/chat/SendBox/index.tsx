@@ -14,7 +14,11 @@ import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwComma
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
-import { appendPromptToDraft, useConversationSendBoxPrefill } from '@/renderer/hooks/chat/useSendBoxDraft';
+import {
+  appendPromptToDraft,
+  useConversationSendBoxPrefill,
+  useRejectedSendBoxDraftRestore,
+} from '@/renderer/hooks/chat/useSendBoxDraft';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import {
   buildAtFileInsertion,
@@ -58,6 +62,7 @@ import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
 import { useConversationExport } from '@renderer/hooks/file/useConversationExport';
 import { useDragUpload } from '@renderer/hooks/file/useDragUpload';
 import { useLatestRef } from '@renderer/hooks/ui/useLatestRef';
+import { useMotion } from '@/renderer/hooks/ui/useMotion';
 import { usePasteService } from '@renderer/hooks/file/usePasteService';
 import { useMessageList } from '@renderer/pages/conversation/Messages/hooks';
 import type { FileMetadata } from '@renderer/services/FileService';
@@ -348,8 +353,25 @@ const SendBox: React.FC<{
   const effectiveLockMultiLine = lockMultiLine && !isMobileCompact;
   const effectiveDefaultMultiLine = defaultMultiLine && !isMobileCompact;
   const conversationContext = useConversationContextSafe();
+  const restoreOriginalDraft = useRejectedSendBoxDraftRestore(
+    conversationContext?.type,
+    conversationContext?.conversation_id
+  );
+  const latestConversationIdRef = useLatestRef(conversationContext?.conversation_id);
+  const { animate, cancel } = useMotion();
+  const sendFeedbackRef = useRef<HTMLSpanElement>(null);
+  const sendGenerationRef = useRef(0);
+  const [acceptedSendSequence, setAcceptedSendSequence] = useState(0);
   const { t, i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
+  useEffect(() => {
+    setIsLoading(false);
+    setAcceptedSendSequence(0);
+    cancel();
+    return () => {
+      sendGenerationRef.current += 1;
+    };
+  }, [conversationContext?.conversation_id, cancel]);
   const [isSingleLine, setIsSingleLine] = useState(!effectiveDefaultMultiLine);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const isInputActive = isInputFocused;
@@ -388,6 +410,18 @@ const SendBox: React.FC<{
   const suppressedExternalAppendPathsRef = useRef<Set<string>>(new Set());
   const fetchedAtFileSessionKeyRef = useRef<string | null>(null);
   const highlightScrollRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (acceptedSendSequence === 0) return;
+    animate(containerRef.current, [{ transform: 'translateY(2px)' }, { transform: 'translateY(0)' }], {
+      duration: 220,
+    });
+    animate(sendFeedbackRef.current, [
+      { transform: 'translateY(0) scale(.9)' },
+      { offset: 0.55, transform: 'translateY(-4px) scale(1.03)' },
+      { transform: 'translateY(0) scale(1)' },
+    ]);
+  }, [acceptedSendSequence, animate]);
 
   // Listen for reply events from message actions
   useAddEventListener('sendbox.reply', (quote) => setReplyQuote(quote), []);
@@ -1615,20 +1649,39 @@ const SendBox: React.FC<{
 
     // 立即清空输入框，避免异步 onSend 完成后覆盖用户新输入
     // Clear input immediately to prevent async onSend completion from overwriting new user input
+    const submittedConversationId = conversationContext?.conversation_id;
+    const submittedGeneration = sendGenerationRef.current;
+    const belongsToCurrentConversation = () =>
+      latestConversationIdRef.current === submittedConversationId && sendGenerationRef.current === submittedGeneration;
+    latestInputRef.current = '';
     setInput('');
     clearDomSnippets();
     setReplyQuote(null);
 
-    onSend(finalMessage)
-      .then((result) => {
-        if (result === false) {
-          setInput(finalMessage);
+    const restoreRejectedDraft = () => {
+      if (!belongsToCurrentConversation()) {
+        restoreOriginalDraft(finalMessage);
+        return;
+      }
+      const nextDraft = latestInputRef.current;
+      const restored =
+        nextDraft && nextDraft !== finalMessage ? appendPromptToDraft(nextDraft, finalMessage) : finalMessage;
+      latestInputRef.current = restored;
+      setInputRef.current(restored);
+    };
+    void (async () => {
+      try {
+        const result = await onSend(finalMessage);
+        if (result === false) restoreRejectedDraft();
+        else if (belongsToCurrentConversation()) {
+          setAcceptedSendSequence((sequence) => sequence + 1);
         }
-      })
-      .catch(() => {})
-      .finally(() => {
-        setIsLoading(false);
-      });
+      } catch {
+        restoreRejectedDraft();
+      } finally {
+        if (belongsToCurrentConversation()) setIsLoading(false);
+      }
+    })();
   };
 
   const stopHandler = async () => {
@@ -1718,7 +1771,7 @@ const SendBox: React.FC<{
 
   const primaryActionButton = (
     <Tooltip content={sendActionTooltip} position='top'>
-      <span className='sendbox-send-tooltip-anchor' style={sendButtonShapeStyle}>
+      <span ref={sendFeedbackRef} className='sendbox-send-tooltip-anchor' style={sendButtonShapeStyle}>
         <Button
           shape='circle'
           type='text'

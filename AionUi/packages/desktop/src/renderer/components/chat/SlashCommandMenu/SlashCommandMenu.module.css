@@ -1,0 +1,22 @@
+.option:global(.arco-btn) {
+  display: block;
+  width: 100%;
+  height: auto;
+  text-align: start;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-style: solid;
+  margin-bottom: 2px;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease;
+}
+.option:global(.arco-btn):last-child {
+  margin-bottom: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .option:global(.arco-btn) {
+    transition: none;
+  }
+}

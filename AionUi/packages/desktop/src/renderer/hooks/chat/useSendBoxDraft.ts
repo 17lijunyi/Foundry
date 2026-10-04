@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 export type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
@@ -163,6 +163,32 @@ const getDraft = <K extends DraftConversationType>(
     default:
       return undefined;
   }
+};
+
+/** Restores a failed submission to its original local draft after navigation. */
+export const useRejectedSendBoxDraftRestore = (type: string | undefined, conversation_id: string | undefined) => {
+  const { mutate } = useSWRConfig();
+  return useCallback(
+    (prompt: string): void => {
+      if (!conversation_id || !prompt || (type !== 'acp' && type !== 'aionrs' && type !== 'codex')) return;
+      const previous = getDraft(type, conversation_id);
+      const content = previous?.content ?? '';
+      const restored = {
+        _type: type,
+        atPath: [],
+        uploadFile: [],
+        ...previous,
+        content: content === prompt ? content : appendPromptToDraft(content, prompt),
+      } as Draft;
+      setDraft(type, conversation_id, restored);
+      // Use an explicit cache key: a bound SWR mutate can follow a reused
+      // composer's latest conversation after the original request resolves.
+      void mutate([`/send-box/${type}/draft/${conversation_id}`, conversation_id], restored, {
+        revalidate: false,
+      }).catch((error) => console.error('Failed to restore rejected draft:', error));
+    },
+    [conversation_id, type, mutate]
+  );
 };
 
 /**

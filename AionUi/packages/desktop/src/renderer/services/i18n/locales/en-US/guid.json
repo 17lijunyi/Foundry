@@ -13,5 +13,15 @@
     "specifyWorkspace": "Select project folder",
     "searchPlaceholder": "Search projects…",
     "noProject": "No Project"
+  },
+  "glass": {
+    "workspace": "Workspace",
+    "subtitle": "Your assistants. A little space for big ideas.",
+    "searchAssistants": "Search assistants…",
+    "noAssistants": "No matching assistants",
+    "navigation": "Main navigation",
+    "quickActions": "Workspace shortcuts",
+    "inputTitle": "What would you like to work on today?",
+    "chooseAssistant": "Choose an assistant"
   }
 }

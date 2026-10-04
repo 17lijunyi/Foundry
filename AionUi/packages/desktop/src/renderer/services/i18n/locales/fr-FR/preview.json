@@ -176,5 +176,17 @@
   "zoomIn": "Zoom avant",
   "zoomOut": "Zoom arrière",
   "zoomReset": "Réinitialiser la vue",
-  "diagramZoomHint": "Molette pour zoomer • Glisser pour déplacer • Échap pour fermer"
+  "diagramZoomHint": "Molette pour zoomer • Glisser pour déplacer • Échap pour fermer",
+  "revisionReview": {
+    "review": "Comparer les modifications",
+    "title": "Comparaison des versions",
+    "before": "Original",
+    "after": "Brouillon révisé",
+    "adopt": "Appliquer et enregistrer",
+    "saved": "Modifications enregistrées",
+    "undo": "Restaurer l’original en brouillon",
+    "undoHint": "Restaure l’original comme brouillon non enregistré sans écraser le fichier sur le disque.",
+    "draftHint": "Comparez avant d’appliquer. Le brouillon est conservé si l’enregistrement échoue.",
+    "empty": "Document vide"
+  }
 }
