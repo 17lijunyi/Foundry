@@ -1,3 +1,19 @@
+Foundry
+
+Maintainer: https://github.com/17lijunyi
+Repository: https://github.com/17lijunyi/Foundry
+
+Foundry is a customized distribution derived from Product Manager Workbench
+by 周承健 (https://github.com/Zhouchengjian-user/product-manager-workbench),
+which is based on AionUi and AionCore. Foundry-specific original additions
+and modifications are distributed under the Apache License, Version 2.0.
+Existing upstream copyright notices, licenses, and third-party notices
+are retained. No upstream endorsement or trademark rights are claimed.
+
+The following pre-existing notice is preserved from Product Manager Workbench:
+
+------------------------------------------------------------------------
+
 产品经理工作台 / Product Manager Workbench
 
 Product design and custom development: 周承健

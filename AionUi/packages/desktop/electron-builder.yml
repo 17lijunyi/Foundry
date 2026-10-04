@@ -219,7 +219,7 @@ electronDownload:
 
 publish:
   provider: github
-  owner: iOfficeAI
-  repo: AionUi
+  owner: 17lijunyi
+  repo: Foundry
   publishAutoUpdate: true
   releaseType: release
