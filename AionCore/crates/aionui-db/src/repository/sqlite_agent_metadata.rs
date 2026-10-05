@@ -975,14 +975,14 @@ mod tests {
         let (repo, _db) = setup().await;
 
         let claude = repo.get("2d23ff1c").await.unwrap().expect("seeded claude row");
-        assert_eq!(claude.icon.as_deref(), Some("/api/assets/logos/ai-major/claude.svg"));
+        assert_eq!(claude.icon.as_deref(), Some("/api/assets/logos/agents/core/claude.svg"));
 
         let rows = repo.list_all().await.unwrap();
         let aionrs = rows
             .iter()
             .find(|row| row.agent_type == "aionrs" && row.agent_source == "internal")
             .expect("seeded aion cli row");
-        assert_eq!(aionrs.icon.as_deref(), Some("/api/assets/logos/brand/aion.svg"));
+        assert_eq!(aionrs.icon.as_deref(), Some("/api/assets/logos/agents/core/aion.svg"));
         let aionrs_modes: serde_json::Value =
             serde_json::from_str(aionrs.available_modes.as_deref().expect("aionrs modes catalog")).unwrap();
         assert_eq!(aionrs_modes["current_mode_id"].as_str(), Some("default"));
@@ -1003,7 +1003,7 @@ mod tests {
         );
 
         let kiro = repo.get("e044000d").await.unwrap().expect("seeded kiro row");
-        assert!(kiro.icon.is_none());
+        assert_eq!(kiro.icon.as_deref(), Some("/api/assets/logos/agents/coding/kiro.svg"));
     }
 
     #[tokio::test]

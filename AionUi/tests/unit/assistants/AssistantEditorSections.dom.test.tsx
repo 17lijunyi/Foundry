@@ -785,6 +785,36 @@ describe('AssistantEditorSections', () => {
     });
   });
 
+  it('previews a chosen official character with crisp edges while leaving uploaded images unchanged', () => {
+    const editor = createEditor();
+    const src = '/api/assistants/writer/avatar';
+    editor.profile = {
+      ...editor.profile,
+      avatar: src,
+      avatarImage: src,
+      builtinAvatarOptions: [{ id: 'writer', label: 'Writer', src }],
+    };
+    const { rerender } = renderWithProviders(<AssistantEditorSections editor={editor} activeAssistant={null} />);
+    const avatarButton = screen.getByTestId('btn-assistant-avatar-emoji');
+    expect(avatarButton.querySelector('img')).toHaveAttribute('src', src);
+    expect(avatarButton.querySelector('img')).toHaveStyle({ imageRendering: 'pixelated' });
+
+    rerender(
+      <MemoryRouter>
+        <ConfigProvider>
+          <AssistantEditorSections
+            editor={{
+              ...editor,
+              profile: { ...editor.profile, avatar: '/tmp/portrait.png', avatarImage: 'data:image/png;base64,preview' },
+            }}
+            activeAssistant={null}
+          />
+        </ConfigProvider>
+      </MemoryRouter>
+    );
+    expect(avatarButton.querySelector('img')?.style.imageRendering).toBe('');
+  });
+
   it('keeps builtin default model and permission editable while showing prompts as read-only content', () => {
     const { container } = renderWithProviders(
       <AssistantEditorSections
@@ -844,6 +874,8 @@ describe('AssistantEditorSections', () => {
     );
 
     const defaultsCard = screen.getByTestId('assistant-card-defaults');
+    expect(screen.queryByTestId('btn-assistant-avatar-emoji')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('btn-assistant-avatar-upload')).not.toBeInTheDocument();
     expect(within(defaultsCard).getByText('Model')).toBeInTheDocument();
     expect(within(defaultsCard).getByText('Permission')).toBeInTheDocument();
 
@@ -922,6 +954,8 @@ describe('AssistantEditorSections', () => {
     );
 
     expect(screen.getByTestId('assistant-cli-readonly-banner')).toBeInTheDocument();
+    expect(screen.queryByTestId('btn-assistant-avatar-emoji')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('btn-assistant-avatar-upload')).not.toBeInTheDocument();
 
     expect(screen.getByTestId('input-assistant-name')).toBeDisabled();
     expect(screen.getByTestId('input-assistant-desc')).not.toBeDisabled();

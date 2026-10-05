@@ -343,6 +343,7 @@ describe('useAssistantEditor', () => {
     act(() => {
       result.current.handleCreate();
       result.current.setEditName('NewAssistant');
+      result.current.setEditAvatar('/api/assistants/official-writer/avatar');
       result.current.setEditRecommendedPromptsText('Prompt A\n\nPrompt B');
       result.current.setDefaultModelMode('fixed');
       result.current.setDefaultModelValue('gpt-4.1');
@@ -363,6 +364,7 @@ describe('useAssistantEditor', () => {
     await waitFor(() => expect(ipcBridge.assistants.create.invoke).toHaveBeenCalled());
     expect(ipcBridge.assistants.create.invoke).toHaveBeenCalledWith(
       expect.objectContaining({
+        avatar: '/api/assistants/official-writer/avatar',
         recommended_prompts: ['Prompt A', 'Prompt B'],
         defaults: {
           model: { mode: 'fixed', value: 'gpt-4.1' },
@@ -407,6 +409,7 @@ describe('useAssistantEditor', () => {
 
     act(() => {
       result.current.setEditName('UpdatedName');
+      result.current.setEditAvatar('/api/assistants/official-analyst/avatar');
     });
 
     await act(async () => {
@@ -414,6 +417,9 @@ describe('useAssistantEditor', () => {
     });
 
     await waitFor(() => expect(ipcBridge.assistants.update.invoke).toHaveBeenCalled());
+    expect(ipcBridge.assistants.update.invoke).toHaveBeenCalledWith(
+      expect.objectContaining({ avatar: '/api/assistants/official-analyst/avatar' })
+    );
     expect(mockMessage.success).toHaveBeenCalled();
     expect(loadAssistantsMock).toHaveBeenCalled();
     expect(swrMutate).toHaveBeenCalledWith('assistants.list');

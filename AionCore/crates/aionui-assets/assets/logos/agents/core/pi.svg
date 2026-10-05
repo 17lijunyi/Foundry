@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="6 6 33 33" fill="currentColor">
+  <title>Pi</title>
+
+  <!-- Adapted from https://pi.dev/logo-auto.svg (MIT License, Earendil Inc.). --><path fill-rule="evenodd" d="M9.3 9.3h19.8v13.2h-6.6v6.6H15.9v6.6H9.3Zm6.6 6.6v6.6h6.6v-6.6Z" />
+  <path d="M29.1 22.5h6.6v13.2h-6.6Z" />
+</svg>

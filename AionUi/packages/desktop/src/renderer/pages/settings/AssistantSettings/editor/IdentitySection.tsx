@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { FieldLabel, SectionCard } from './editorSectionPrimitives';
 
 type IdentitySectionProps = {
+  framelessAvatar?: boolean;
   isIdentityLocked: boolean;
   isDescriptionReadOnly: boolean;
   editAvatar: string;
@@ -22,6 +23,7 @@ type IdentitySectionProps = {
 };
 
 const IdentitySection: React.FC<IdentitySectionProps> = ({
+  framelessAvatar = false,
   isIdentityLocked,
   isDescriptionReadOnly,
   editAvatar,
@@ -53,7 +55,11 @@ const IdentitySection: React.FC<IdentitySectionProps> = ({
     >
       <div className='flex items-start gap-14px'>
         {!isIdentityEditable ? (
-          <Avatar shape='square' size={42} className='!rounded-10px bg-fill-1'>
+          <Avatar
+            shape='square'
+            size={42}
+            className={framelessAvatar ? '!bg-transparent text-t-primary' : '!rounded-10px bg-fill-1'}
+          >
             {renderAvatarPreview()}
           </Avatar>
         ) : (
@@ -69,6 +75,7 @@ const IdentitySection: React.FC<IdentitySectionProps> = ({
             >
               <Button
                 type='text'
+                aria-label={t('settings.assistantAvatarBuiltinTab')}
                 data-testid='btn-assistant-avatar-emoji'
                 className='!h-42px !w-42px !rounded-10px !bg-fill-1 !p-0'
               >

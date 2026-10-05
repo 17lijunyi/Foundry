@@ -162,7 +162,7 @@
   "assistantAvatarUploadImage": "Загрузить изображение",
   "assistantAvatarImageFiles": "Файлы изображений",
   "assistantAvatarEmojiTab": "Эмодзи",
-  "assistantAvatarBuiltinTab": "Встроенные изображения",
+  "assistantAvatarBuiltinTab": "Аватары персонажей",
   "assistantAvatarNoBuiltinImages": "Нет встроенных изображений",
   "assistantPrompt": "Промпт",
   "assistantPromptPlaceholder": "Введите промпт или правила...",
@@ -1428,5 +1428,15 @@
   "crossSessionMessageDesc": "Разрешить агентам отправлять сообщения в ваши другие беседы. При отключении также отключается упоминание @@ в поле ввода.",
   "crossSessionMessageDisabledBanner": "Сообщения между беседами отключены, упоминание @@ недоступно.",
   "crossSessionMessageResume": "Включить снова",
-  "crossSessionMessageUpdateFailed": "Не удалось обновить настройку сообщений между беседами"
+  "crossSessionMessageUpdateFailed": "Не удалось обновить настройку сообщений между беседами",
+  "emojiCategories": {
+    "recent": "Недавние",
+    "smileys": "Смайлики",
+    "animals": "Животные",
+    "food": "Еда",
+    "activities": "Занятия",
+    "objects": "Предметы",
+    "symbols": "Символы",
+    "flags": "Флаги"
+  }
 }

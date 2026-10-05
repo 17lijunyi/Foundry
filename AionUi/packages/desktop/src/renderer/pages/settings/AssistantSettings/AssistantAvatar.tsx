@@ -29,10 +29,18 @@ const AssistantAvatar: React.FC<AssistantAvatarProps> = ({
 
   return (
     <Avatar.Group size={size}>
-      <Avatar className='border-none' shape={shape} style={{ backgroundColor: 'var(--color-fill-2)', border: 'none' }}>
+      <Avatar
+        className='border-none'
+        shape={shape}
+        style={{
+          backgroundColor: assistant.source === 'generated' ? 'transparent' : 'var(--color-fill-2)',
+          border: 'none',
+        }}
+      >
         {avatarImage ? (
           <ThemedLogo
             src={avatarImage}
+            pixelated={assistant.source === 'builtin'}
             alt=''
             className={`rounded-inherit ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
             // Arco Avatar forces color:var(--color-white); pin to theme text so

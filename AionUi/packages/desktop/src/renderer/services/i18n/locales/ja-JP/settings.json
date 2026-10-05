@@ -154,7 +154,7 @@
   "assistantAvatarUploadImage": "画像をアップロード",
   "assistantAvatarImageFiles": "画像ファイル",
   "assistantAvatarEmojiTab": "絵文字",
-  "assistantAvatarBuiltinTab": "内蔵画像",
+  "assistantAvatarBuiltinTab": "キャラクターアバター",
   "assistantAvatarNoBuiltinImages": "利用可能な内蔵画像はありません",
   "assistantPrompt": "プロンプト",
   "assistantPromptPlaceholder": "プロンプトやルールを入力",
@@ -1416,5 +1416,15 @@
   "crossSessionMessageDesc": "エージェントが他の会話にメッセージを送れるようにします。オフにすると入力欄の @@ 会話メンションも無効になります。",
   "crossSessionMessageDisabledBanner": "会話間メッセージはオフです。入力欄の @@ 会話メンションは使用できません。",
   "crossSessionMessageResume": "再度オンにする",
-  "crossSessionMessageUpdateFailed": "会話間メッセージ設定の更新に失敗しました"
+  "crossSessionMessageUpdateFailed": "会話間メッセージ設定の更新に失敗しました",
+  "emojiCategories": {
+    "recent": "最近使用",
+    "smileys": "顔文字",
+    "animals": "動物",
+    "food": "食べ物",
+    "activities": "アクティビティ",
+    "objects": "物",
+    "symbols": "記号",
+    "flags": "旗"
+  }
 }

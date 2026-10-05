@@ -53,7 +53,7 @@ const TeammateMessageAvatar: React.FC<Props> = ({ senderName, senderConversation
   }
 
   if (backendLogo) {
-    return <ThemedLogo src={backendLogo} alt={senderName} className='w-20px h-20px rounded-full object-contain' />;
+    return <ThemedLogo src={backendLogo} alt={senderName} className='w-20px h-20px object-contain text-t-primary' />;
   }
 
   return (

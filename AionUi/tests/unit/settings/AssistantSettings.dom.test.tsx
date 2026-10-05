@@ -10,6 +10,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { ConfigProvider } from '@arco-design/web-react';
 import { MemoryRouter } from 'react-router-dom';
 import AssistantSettings from '@/renderer/pages/settings/AssistantSettings';
+import AssistantAvatar from '@/renderer/pages/settings/AssistantSettings/AssistantAvatar';
 import EnabledAssistantsList from '@/renderer/pages/settings/AssistantSettings/home/EnabledAssistantsList';
 import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSettings/types';
 
@@ -149,6 +150,35 @@ describe('AssistantSettings', () => {
       setEditVisible: vi.fn(),
     });
   });
+
+  it.each(['builtin', 'user', 'generated'] as const)(
+    'respects the %s avatar source when rendering pixel art',
+    (source) => {
+      const assistant: AssistantListItem = {
+        id: 'avatar-source',
+        name: 'Avatar source',
+        source,
+        avatar: '/api/assistants/avatar-source/avatar',
+        enabled: true,
+        sort_order: 0,
+        agent_id: 'agent',
+        name_i18n: {},
+        description_i18n: {},
+        enabled_skills: [],
+        custom_skill_names: [],
+        disabled_builtin_skills: [],
+        context_i18n: {},
+        prompts: [],
+        prompts_i18n: {},
+        models: [],
+        agent_status: 'online',
+        team_selectable: true,
+        deletable: source === 'user',
+      };
+      const { container } = render(<AssistantAvatar assistant={assistant} />);
+      expect(container.querySelector('img')?.style.imageRendering).toBe(source === 'builtin' ? 'pixelated' : '');
+    }
+  );
 
   it('keeps the editor visible when an existing assistant session is open and activeAssistant is temporarily null', () => {
     render(

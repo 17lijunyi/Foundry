@@ -162,7 +162,7 @@
   "assistantAvatarUploadImage": "Завантажити зображення",
   "assistantAvatarImageFiles": "Файли зображень",
   "assistantAvatarEmojiTab": "Емодзі",
-  "assistantAvatarBuiltinTab": "Вбудовані зображення",
+  "assistantAvatarBuiltinTab": "Аватари персонажів",
   "assistantAvatarNoBuiltinImages": "Немає вбудованих зображень",
   "assistantPrompt": "Промпт",
   "assistantPromptPlaceholder": "Введіть промпт або правила...",
@@ -1429,5 +1429,15 @@
   "crossSessionMessageDesc": "Дозволяє агентам надсилати повідомлення до ваших інших розмов. Вимкнення також відключає згадку @@ у полі введення.",
   "crossSessionMessageDisabledBanner": "Повідомлення між розмовами вимкнено, згадка @@ недоступна.",
   "crossSessionMessageResume": "Увімкнути знову",
-  "crossSessionMessageUpdateFailed": "Не вдалося оновити налаштування повідомлень між розмовами"
+  "crossSessionMessageUpdateFailed": "Не вдалося оновити налаштування повідомлень між розмовами",
+  "emojiCategories": {
+    "recent": "Нещодавні",
+    "smileys": "Смайлики",
+    "animals": "Тварини",
+    "food": "Їжа",
+    "activities": "Заняття",
+    "objects": "Предмети",
+    "symbols": "Символи",
+    "flags": "Прапори"
+  }
 }

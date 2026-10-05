@@ -117,6 +117,25 @@ mod tests {
     }
 
     #[test]
+    fn agent_brand_icons_are_embedded_as_tintable_vectors() {
+        let service = AssetService;
+        let paths: Vec<_> = LogoAssets::iter()
+            .filter(|path| path.starts_with("agents/") && path.ends_with(".svg"))
+            .collect();
+        assert_eq!(paths.len(), 42);
+        for path in paths {
+            let asset = service
+                .get_logo(&path)
+                .unwrap_or_else(|error| panic!("missing {path}: {error}"));
+            assert_eq!(asset.content_type, HeaderValue::from_static("image/svg+xml"));
+            let svg = std::str::from_utf8(&asset.bytes).expect("SVG text");
+            assert!(svg.contains("currentColor"), "{path} must follow the theme");
+            assert!(svg.contains("viewBox="), "{path} must scale at all icon sizes");
+            assert!(!svg.contains("<image"), "{path} must not contain a raster backplate");
+        }
+    }
+
+    #[test]
     fn registry_agent_logos_are_embedded_as_svg() {
         let service = AssetService;
         for name in [

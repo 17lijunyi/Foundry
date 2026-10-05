@@ -18,7 +18,11 @@ async fn verified_registry_binary_agents_store_stable_registry_identity() {
     for (backend, command, args, yolo_id) in cases {
         let row = repo.find_builtin_by_backend(backend).await.unwrap().unwrap();
         assert_eq!(row.description, None, "{backend} builtin description");
-        let expected_icon = format!("/api/assets/logos/acp-registry/{backend}.svg");
+        let icon_group = match backend {
+            "amp-acp" | "cortex-code" | "corust-agent" | "devin" => "registry-a",
+            _ => "registry-b",
+        };
+        let expected_icon = format!("/api/assets/logos/agents/{icon_group}/{backend}.svg");
         assert_eq!(row.icon.as_deref(), Some(expected_icon.as_str()), "{backend} icon");
         assert_eq!(row.command.as_deref(), Some(command), "{backend} command");
         assert_eq!(row.args.as_deref(), Some(args), "{backend} args");

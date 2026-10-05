@@ -67,7 +67,12 @@ async fn verified_registry_npx_agents_use_stable_packages_and_conservative_team_
         let row = repo.find_builtin_by_backend(backend).await.unwrap().unwrap();
         assert_eq!(row.description, None, "{backend} builtin description");
         assert_eq!(row.command.as_deref(), Some("npx"), "{backend} command");
-        let expected_icon = format!("/api/assets/logos/acp-registry/{backend}.svg");
+        let icon_group = match backend {
+            "mimo-code" => "core",
+            "grok" | "kilo" | "nova" | "sigit" => "registry-b",
+            _ => "registry-a",
+        };
+        let expected_icon = format!("/api/assets/logos/agents/{icon_group}/{backend}.svg");
         assert_eq!(row.icon.as_deref(), Some(expected_icon.as_str()), "{backend} icon");
         assert_eq!(row.args.as_deref(), Some(args), "{backend} args");
         assert_eq!(row.native_skills_dirs.as_deref(), skills, "{backend} skills");

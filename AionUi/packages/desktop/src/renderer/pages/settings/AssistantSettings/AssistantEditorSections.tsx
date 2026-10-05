@@ -324,11 +324,12 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
   const renderAvatarPreview = () => {
     if (editAvatarImage) {
       return (
-        <img
+        <ThemedLogo
           src={editAvatarImage}
           alt=''
-          className='h-full w-full rounded-inherit object-cover'
-          style={{ display: 'block' }}
+          className='block h-full w-full rounded-inherit object-cover'
+          style={isGenerated ? { color: 'var(--text-primary)' } : undefined}
+          pixelated={isBuiltin || profile.builtinAvatarOptions.some((option) => option.src === editAvatarImage)}
         />
       );
     }
@@ -397,6 +398,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
       ) : null}
 
       <IdentitySection
+        framelessAvatar={isGenerated}
         isIdentityLocked={isIdentityLocked}
         isDescriptionReadOnly={isDescriptionReadOnly}
         editAvatar={editAvatar}

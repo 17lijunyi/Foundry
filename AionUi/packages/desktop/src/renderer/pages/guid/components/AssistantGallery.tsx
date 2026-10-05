@@ -111,7 +111,12 @@ const AssistantGallery: React.FC<AssistantGalleryProps> = ({
             >
               <span className={styles.galleryArtwork} aria-hidden='true'>
                 {avatar.kind === 'image' ? (
-                  <ThemedLogo src={avatar.value} alt='' className={styles.galleryLogo} />
+                  <ThemedLogo
+                    src={avatar.value}
+                    alt=''
+                    className={styles.galleryLogo}
+                    pixelated={assistant.source === 'builtin'}
+                  />
                 ) : avatar.kind === 'emoji' ? (
                   <span className={styles.galleryEmoji}>{avatar.value}</span>
                 ) : (

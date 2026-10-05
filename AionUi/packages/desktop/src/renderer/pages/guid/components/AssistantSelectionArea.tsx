@@ -248,9 +248,17 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           setMoreVisible(false);
         }}
       >
-        <span className='inline-flex h-20px w-20px items-center justify-center overflow-hidden rounded-999px bg-fill-2'>
+        <span
+          className={`inline-flex h-20px w-20px items-center justify-center ${assistant.source === 'generated' ? '' : 'overflow-hidden rounded-999px bg-fill-2'}`}
+        >
           {avatar.kind === 'image' ? (
-            <ThemedLogo src={avatar.value} alt='' className='object-contain' style={{ width: 20, height: 20 }} />
+            <ThemedLogo
+              src={avatar.value}
+              alt=''
+              className='object-contain'
+              style={{ width: 20, height: 20 }}
+              pixelated={assistant.source === 'builtin'}
+            />
           ) : avatar.kind === 'emoji' ? (
             <span className={styles.assistantCardEmoji}>{avatar.value}</span>
           ) : (
