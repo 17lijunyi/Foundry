@@ -35,17 +35,18 @@ run_in_repo() {
 init_case_repo() {
     local name="$1"
     local dir="$tmpdir/$name"
+    local migration_dir="${2:-}crates/aionui-db/migrations"
 
-    mkdir -p "$dir/crates/aionui-db/migrations"
+    mkdir -p "$dir/$migration_dir"
     (
         cd "$dir"
         git init -q -b main
         git config user.email test@example.com
         git config user.name "Migration Test"
-        printf '%s\n' '-- 001 initial' > crates/aionui-db/migrations/001_initial_schema.sql
-        printf '%s\n' '-- 002 data fix' > crates/aionui-db/migrations/002_data_fix.sql
-        printf '%s\n' '-- auxiliary sql' > crates/aionui-db/migrations/manual_fixture.sql
-        git add crates/aionui-db/migrations
+        printf '%s\n' '-- 001 initial' > "$migration_dir/001_initial_schema.sql"
+        printf '%s\n' '-- 002 data fix' > "$migration_dir/002_data_fix.sql"
+        printf '%s\n' '-- auxiliary sql' > "$migration_dir/manual_fixture.sql"
+        git add "$migration_dir"
         git commit -q -m "seed migrations"
         git checkout -q -b feature
     )
@@ -82,5 +83,25 @@ override_repo="$(init_case_repo override)"
 printf '%s\n' '-- modified with explicit override' >> "$override_repo/crates/aionui-db/migrations/001_initial_schema.sql"
 run_in_repo "$override_repo" 0 "skipping migration immutability check" \
     env AIONCORE_MIGRATION_BASE_REF=main AIONCORE_ALLOW_MAIN_MIGRATION_EDIT=1 bash "$script"
+
+nested_added_repo="$(init_case_repo nested-added AionCore/)"
+printf '%s\n' '-- 003 new migration' > "$nested_added_repo/AionCore/crates/aionui-db/migrations/003_new_change.sql"
+run_in_repo "$nested_added_repo/AionCore" 0 "Migration immutability check passed" \
+    env AIONCORE_MIGRATION_BASE_REF=main bash "$script"
+
+nested_modified_repo="$(init_case_repo nested-modified AionCore/)"
+printf '%s\n' '-- modified' >> "$nested_modified_repo/AionCore/crates/aionui-db/migrations/001_initial_schema.sql"
+run_in_repo "$nested_modified_repo" 1 "Existing migration files from main must not be modified or deleted" \
+    env AIONCORE_MIGRATION_BASE_REF=main bash "$script"
+
+nested_deleted_repo="$(init_case_repo nested-deleted AionCore/)"
+rm "$nested_deleted_repo/AionCore/crates/aionui-db/migrations/002_data_fix.sql"
+run_in_repo "$nested_deleted_repo/AionCore" 1 "Existing migration files from main must not be modified or deleted" \
+    env AIONCORE_MIGRATION_BASE_REF=main bash "$script"
+
+nested_duplicate_repo="$(init_case_repo nested-duplicate AionCore/)"
+printf '%s\n' '-- duplicate 002 migration' > "$nested_duplicate_repo/AionCore/crates/aionui-db/migrations/002_duplicate_change.sql"
+run_in_repo "$nested_duplicate_repo/AionCore" 1 "Duplicate database migration versions are not allowed" \
+    env AIONCORE_MIGRATION_BASE_REF=main bash "$script"
 
 echo "Migration immutability script tests passed"
