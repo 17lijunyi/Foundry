@@ -1,11 +1,11 @@
 # 作者与品牌
 
-## Foundry · 2026-10-04
+## Foundry · 2026-10-05
 
 - **当前产品名称**：Foundry
-- **本分支产品设计、定制与维护**：[@17lijunyi](https://github.com/17lijunyi)
+- **Foundry 产品设计、定制开发与维护**：[@17lijunyi](https://github.com/17lijunyi)
 - **当前仓库**：[17lijunyi/Foundry](https://github.com/17lijunyi/Foundry)
-- **改造范围**：Foundry 名称与填满画布的折带 F 图标、32px 助手图标和以输入为中心的紧凑布局、macOS 原生玻璃材质、十种实际交互动效，以及消息发送、排队与异步编辑中的草稿保护。实现范围见[修改记录](MODIFICATIONS.md)。
+- **改造范围**：Foundry 名称与填满画布的折带 F 图标、以输入为中心的布局、macOS 原生玻璃材质、十种实际交互动效，以及消息发送、排队与异步编辑中的草稿保护；统一的单色 Agent 品牌图标、21 个任务主题像素角色头像与自定义头像选择，以及 macOS 绿色按钮在当前桌面放大／还原窗口的体验。实现范围见[修改记录](MODIFICATIONS.md)与对应源码提交。
 
 Foundry 基于[周承健的产品经理工作台](https://github.com/Zhouchengjian-user/product-manager-workbench)继续开发。前代的产品定位、模型对比与项目文件夹等定制归属保留；其下层基础来自 [AionUi](https://github.com/iOfficeAI/AionUi) 和 [AionCore](https://github.com/iOfficeAI/AionCore)。通用会话、助手、团队、定时任务等上游能力不以 Foundry 署名声明为独立原创。
 
