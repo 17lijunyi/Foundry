@@ -493,6 +493,8 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
           transparent: true,
           hasShadow: false,
           titleBarStyle: 'hidden',
+          // The native green button zooms/restores the window in the current desktop.
+          fullscreenable: false,
           // Align traffic-light vertical center with the titlebar button centers.
           // Titlebar is 45px; buttons are 36px flex-centered → button center y≈22.5.
           // Empirically y=13 places the traffic lights on the same horizontal line
