@@ -85,6 +85,15 @@ describe('detectTintableLogo', () => {
 });
 
 describe('ThemedLogo', () => {
+  it('uses pixel rendering only when the avatar owner explicitly requests it', () => {
+    const { rerender } = render(<ThemedLogo src='/api/assistants/official/avatar' alt='Character' pixelated />);
+    expect(screen.getByRole('img', { name: 'Character' })).toHaveStyle({ imageRendering: 'pixelated' });
+    rerender(<ThemedLogo src='/api/assistants/uploaded/avatar' alt='Uploaded portrait' />);
+    expect(screen.getByRole('img', { name: 'Uploaded portrait' }).style.imageRendering).toBe('');
+    rerender(<ThemedLogo src='/assets/cli-logo.png' alt='CLI logo' />);
+    expect(screen.getByRole('img', { name: 'CLI logo' }).style.imageRendering).toBe('');
+  });
+
   it('re-renders a currentColor svg as a tinted mask with the accessible name', async () => {
     stubFetch(() => Promise.resolve(svgResponse('<svg fill="currentColor"></svg>')));
     const { container } = render(<ThemedLogo src={uniqueSvgUrl()} alt='OpenAI logo' />);

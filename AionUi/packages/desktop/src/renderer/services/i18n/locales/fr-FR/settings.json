@@ -154,7 +154,7 @@
   "assistantAvatarUploadImage": "Télécharger une image",
   "assistantAvatarImageFiles": "Fichiers images",
   "assistantAvatarEmojiTab": "Émoji",
-  "assistantAvatarBuiltinTab": "Intégré",
+  "assistantAvatarBuiltinTab": "Avatars de personnages",
   "assistantAvatarNoBuiltinImages": "Aucune image intégrée",
   "assistantPrompt": "Prompt",
   "assistantPromptPlaceholder": "Entrer le prompt ou les règles...",
@@ -1414,5 +1414,15 @@
   "crossSessionMessageDesc": "Permet aux agents d'envoyer des messages à vos autres conversations. La désactivation coupe aussi la mention @@ dans la zone de saisie.",
   "crossSessionMessageDisabledBanner": "Les messages entre conversations sont désactivés, la mention @@ est indisponible.",
   "crossSessionMessageResume": "Réactiver",
-  "crossSessionMessageUpdateFailed": "Échec de la mise à jour du réglage des messages entre conversations"
+  "crossSessionMessageUpdateFailed": "Échec de la mise à jour du réglage des messages entre conversations",
+  "emojiCategories": {
+    "recent": "Récents",
+    "smileys": "Émoticônes",
+    "animals": "Animaux",
+    "food": "Nourriture",
+    "activities": "Activités",
+    "objects": "Objets",
+    "symbols": "Symboles",
+    "flags": "Drapeaux"
+  }
 }

@@ -4,20 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Empty, Popover, Tabs } from '@arco-design/web-react';
+import { Button, Empty, Popover, Tabs, Tooltip } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 
 // Common emoji categories with popular emojis
 const EMOJI_CATEGORIES = {
   recent: {
     icon: '🕐',
-    label: 'Recent',
+    label: 'settings.emojiCategories.recent' as const,
     emojis: [] as string[], // Will be populated from localStorage
   },
   smileys: {
     icon: '😀',
-    label: 'Smileys',
+    label: 'settings.emojiCategories.smileys' as const,
     emojis: [
       '😀',
       '😃',
@@ -87,7 +88,7 @@ const EMOJI_CATEGORIES = {
   },
   animals: {
     icon: '🐱',
-    label: 'Animals',
+    label: 'settings.emojiCategories.animals' as const,
     emojis: [
       '🐶',
       '🐱',
@@ -149,7 +150,7 @@ const EMOJI_CATEGORIES = {
   },
   food: {
     icon: '🍎',
-    label: 'Food',
+    label: 'settings.emojiCategories.food' as const,
     emojis: [
       '🍎',
       '🍐',
@@ -211,7 +212,7 @@ const EMOJI_CATEGORIES = {
   },
   activities: {
     icon: '⚽',
-    label: 'Activities',
+    label: 'settings.emojiCategories.activities' as const,
     emojis: [
       '⚽',
       '🏀',
@@ -273,7 +274,7 @@ const EMOJI_CATEGORIES = {
   },
   objects: {
     icon: '💡',
-    label: 'Objects',
+    label: 'settings.emojiCategories.objects' as const,
     emojis: [
       '💡',
       '🔦',
@@ -335,7 +336,7 @@ const EMOJI_CATEGORIES = {
   },
   symbols: {
     icon: '❤️',
-    label: 'Symbols',
+    label: 'settings.emojiCategories.symbols' as const,
     emojis: [
       '❤️',
       '🧡',
@@ -397,7 +398,7 @@ const EMOJI_CATEGORIES = {
   },
   flags: {
     icon: '🏁',
-    label: 'Flags',
+    label: 'settings.emojiCategories.flags' as const,
     emojis: [
       '🏁',
       '🚩',
@@ -435,7 +436,7 @@ const MAX_RECENT_EMOJIS = 24;
 // Arco Design Popover position types
 type PopoverPosition = 'top' | 'bottom' | 'left' | 'right' | 'tl' | 'tr' | 'bl' | 'br' | 'lt' | 'lb' | 'rt' | 'rb';
 
-interface EmojiPickerProps {
+type EmojiPickerProps = {
   value?: string;
   onChange?: (emoji: string) => void;
   children?: React.ReactNode;
@@ -445,7 +446,7 @@ interface EmojiPickerProps {
     label: string;
     src: string;
   }>;
-}
+};
 
 const EmojiPicker: React.FC<EmojiPickerProps> = ({
   value,
@@ -457,7 +458,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [activeCategory, setActiveCategory] = useState<CategoryKey>('smileys');
-  const [activeTab, setActiveTab] = useState<'emoji' | 'builtin'>('emoji');
+  const [activeTab, setActiveTab] = useState<'emoji' | 'builtin'>(builtinAvatars.length > 0 ? 'builtin' : 'emoji');
 
   // Load recent emojis from localStorage
   const recentEmojis = useMemo(() => {
@@ -522,23 +523,25 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
       return;
     }
 
-    const hasMatchingBuiltinAvatar = builtinAvatars.some((avatarOption) => avatarOption.src === value);
-    setActiveTab(hasMatchingBuiltinAvatar ? 'builtin' : 'emoji');
-  }, [builtinAvatars, value, visible]);
+    setActiveTab(builtinAvatars.length > 0 ? 'builtin' : 'emoji');
+  }, [builtinAvatars.length, visible]);
 
   const emojiPickerContent = (
     <div className='w-280px'>
       {/* Category Tabs */}
       <div className='flex items-center gap-2px px-8px py-6px border-b border-[var(--color-border-2)] overflow-x-auto'>
         {categoryKeys.map((key) => (
-          <button
+          <Button
             key={key}
-            className={`flex-shrink-0 w-28px h-28px flex items-center justify-center rounded-md text-16px cursor-pointer border-none bg-transparent hover:bg-fill-2 transition-colors ${activeCategory === key ? 'bg-fill-2' : ''}`}
+            type='text'
+            className={`!flex-shrink-0 !w-28px !h-28px !p-0 !rounded-md !text-16px ${activeCategory === key ? '!bg-fill-2' : ''}`}
             onClick={() => setActiveCategory(key)}
-            title={EMOJI_CATEGORIES[key].label}
+            title={t(EMOJI_CATEGORIES[key].label)}
+            aria-label={t(EMOJI_CATEGORIES[key].label)}
+            aria-pressed={activeCategory === key}
           >
             {EMOJI_CATEGORIES[key].icon}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -547,13 +550,16 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
         {currentEmojis.length > 0 ? (
           <div className='grid grid-cols-8 gap-2px'>
             {currentEmojis.map((emoji: string, index: number) => (
-              <button
+              <Button
                 key={`${emoji}-${index}`}
-                className='w-32px h-32px flex items-center justify-center text-20px cursor-pointer border-none bg-transparent rounded-md hover:bg-fill-2 transition-colors'
+                type='text'
+                className='!w-32px !h-32px !p-0 !text-20px !rounded-md'
                 onClick={() => handleSelectEmoji(emoji)}
+                aria-label={emoji}
+                aria-pressed={value === emoji}
               >
                 {emoji}
-              </button>
+              </Button>
             ))}
           </div>
         ) : (
@@ -572,20 +578,23 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
           {builtinAvatars.map((avatarOption) => {
             const isSelected = avatarOption.src === value;
             return (
-              <Button
-                key={avatarOption.id}
-                type='text'
-                className={`!h-auto !w-full !justify-start !rounded-10px !border !border-solid !px-6px !py-8px transition-colors ${
-                  isSelected ? 'border-primary bg-primary-1' : 'border-transparent bg-transparent hover:bg-fill-1'
-                }`}
-                onClick={() => handleSelectBuiltinAvatar(avatarOption.src)}
-              >
-                <div className='flex w-full items-center justify-center'>
-                  <div className='h-48px w-48px overflow-hidden rounded-10px bg-fill-1'>
-                    <img src={avatarOption.src} alt={avatarOption.label} className='h-full w-full object-cover' />
+              <Tooltip key={avatarOption.id} content={avatarOption.label}>
+                <Button
+                  type='text'
+                  aria-label={avatarOption.label}
+                  aria-pressed={isSelected}
+                  className={`!h-auto !w-full !justify-start !rounded-10px !border !border-solid !px-4px !py-8px transition-colors ${
+                    isSelected ? 'border-primary bg-primary-1' : 'border-transparent bg-transparent hover:bg-fill-1'
+                  }`}
+                  onClick={() => handleSelectBuiltinAvatar(avatarOption.src)}
+                >
+                  <div className='flex w-full items-center justify-center'>
+                    <div className='h-48px w-48px overflow-hidden rounded-10px bg-fill-1'>
+                      <ThemedLogo src={avatarOption.src} alt='' className='h-full w-full object-cover' pixelated />
+                    </div>
                   </div>
-                </div>
-              </Button>
+                </Button>
+              </Tooltip>
             );
           })}
         </div>
@@ -604,7 +613,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
             title={
               <span className='flex items-center gap-4px'>
                 <span aria-hidden='true'>👤</span>{' '}
-                <span>{t('settings.assistantAvatarBuiltinTab', { defaultValue: 'Built-in' })}</span>
+                <span>{t('settings.assistantAvatarBuiltinTab', { defaultValue: 'Character avatars' })}</span>
               </span>
             }
           >
@@ -637,9 +646,15 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
       unmountOnExit
     >
       {children || (
-        <div className='w-40px h-40px flex items-center justify-center text-24px bg-fill-2 rounded-lg cursor-pointer hover:bg-fill-3 transition-colors'>
+        <Button
+          type='text'
+          aria-label={t(
+            builtinAvatars.length > 0 ? 'settings.assistantAvatarBuiltinTab' : 'settings.assistantAvatarEmojiTab'
+          )}
+          className='!w-40px !h-40px !p-0 !text-24px !bg-fill-2 !rounded-lg'
+        >
           {value || '😀'}
-        </div>
+        </Button>
       )}
     </Popover>
   );

@@ -453,9 +453,13 @@ mod tests {
 
     #[test]
     fn avatar_asset_is_none_for_inline_emoji_avatar() {
-        let reg = BuiltinAssistantRegistry::load_embedded();
-        // word-form-creator still ships with an inline emoji avatar.
-        assert!(reg.avatar_asset("word-form-creator").is_none());
+        let tmp = TempDir::new().unwrap();
+        write_manifest(
+            tmp.path(),
+            r#"{"assistants":[{"id":"emoji","name":"Emoji","agent_ref":"gemini","avatar":"📋"}]}"#,
+        );
+        let reg = BuiltinAssistantRegistry::load_from_dir(tmp.path().to_path_buf());
+        assert!(reg.avatar_asset("emoji").is_none());
     }
 
     #[test]
@@ -465,7 +469,43 @@ mod tests {
             .avatar_asset("word-creator")
             .expect("shipped word-creator avatar should resolve from the embedded bundle");
         assert!(!asset.bytes.is_empty());
-        assert_eq!(asset.extension.as_deref(), Some("jpg"));
+        assert_eq!(asset.extension.as_deref(), Some("png"));
+    }
+
+    #[test]
+    fn every_official_assistant_ships_a_square_transparent_pixel_portrait() {
+        let reg = BuiltinAssistantRegistry::load_embedded();
+        assert_eq!(reg.all().count(), 21);
+        for assistant in reg.all() {
+            let asset = reg
+                .avatar_asset(&assistant.id)
+                .expect("official avatar must be embedded");
+            assert_eq!(asset.extension.as_deref(), Some("png"), "{}", assistant.id);
+            let bytes = &asset.bytes;
+            assert!(bytes.len() >= 33, "{}: truncated PNG", assistant.id);
+            assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n", "{}", assistant.id);
+            assert_eq!(&bytes[12..16], b"IHDR", "{}", assistant.id);
+            let width = u32::from_be_bytes(bytes[16..20].try_into().unwrap());
+            let height = u32::from_be_bytes(bytes[20..24].try_into().unwrap());
+            assert_eq!(width, height, "{}: portrait must be square", assistant.id);
+            assert!(
+                (128..=512).contains(&width),
+                "{}: invalid avatar dimensions",
+                assistant.id
+            );
+            assert_eq!(bytes[25], 6, "{}: avatar must retain RGBA transparency", assistant.id);
+        }
+    }
+
+    #[test]
+    fn avatar_asset_is_none_when_declared_file_is_missing() {
+        let tmp = TempDir::new().unwrap();
+        write_manifest(
+            tmp.path(),
+            r#"{"assistants":[{"id":"missing","name":"Missing","agent_ref":"gemini","avatar":"missing.png"}]}"#,
+        );
+        let reg = BuiltinAssistantRegistry::load_from_dir(tmp.path().to_path_buf());
+        assert!(reg.avatar_asset("missing").is_none());
     }
 
     #[test]

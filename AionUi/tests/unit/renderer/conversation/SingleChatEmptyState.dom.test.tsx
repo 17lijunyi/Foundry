@@ -5,8 +5,8 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const useSWRMock = vi.fn();
 const usePresetAssistantInfoMock = vi.fn();
@@ -48,6 +48,34 @@ describe('SingleChatEmptyState', () => {
     useSWRMock.mockReset();
     usePresetAssistantInfoMock.mockReset();
     getConversationOrNullMock.mockReset();
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('tints the Agent mark in an empty chat instead of displaying a black SVG image', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 2h20v20H2Z"/></svg>')
+    );
+    useSWRMock.mockReturnValue({
+      data: { id: 'conv-icon', type: 'acp', name: 'New chat', extra: { backend: 'codex' } },
+    });
+    usePresetAssistantInfoMock.mockReturnValue({
+      info: {
+        name: 'Codex CLI',
+        logo: 'http://127.0.0.1:1/api/assets/logos/agents/core/codex.svg',
+        isEmoji: false,
+        backend: 'codex',
+      },
+    });
+
+    render(<SingleChatEmptyState conversation_id='conv-icon' />);
+
+    await waitFor(() => {
+      const mark = screen.getByRole('img', { name: 'Codex CLI' });
+      expect(mark.tagName).toBe('SPAN');
+      expect(mark.style.backgroundColor).toBe('currentcolor');
+      expect(mark.style.maskImage).toContain('/api/assets/logos/agents/core/codex.svg');
+    });
   });
 
   it('renders the greeting once the conversation record is available', () => {

@@ -13,6 +13,7 @@ import { resolveConversationBackend } from '@/renderer/pages/conversation/utils/
 import { resolveAgentAvatar, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
 import { Robot } from '@icon-park/react';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 
 type Props = {
   conversation_id: string;
@@ -85,7 +86,7 @@ const SingleChatEmptyState: React.FC<Props> = ({ conversation_id, assistant_name
         );
       }
       return (
-        <img
+        <ThemedLogo
           src={presetInfo.logo}
           alt={presetInfo.name}
           className='w-48px h-48px object-contain rounded-8px opacity-90'
@@ -94,10 +95,10 @@ const SingleChatEmptyState: React.FC<Props> = ({ conversation_id, assistant_name
     }
     if (agentAvatar.kind === 'image') {
       return (
-        <img
+        <ThemedLogo
           src={agentAvatar.value}
           alt={assistantName}
-          className='w-48px h-48px object-contain rounded-8px opacity-80'
+          className='w-48px h-48px object-contain text-t-primary opacity-80'
         />
       );
     }

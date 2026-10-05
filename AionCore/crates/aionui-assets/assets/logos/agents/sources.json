@@ -1,0 +1,254 @@
+[
+  {
+    "name": "aion",
+    "originalIcon": "/api/assets/logos/brand/aion.svg",
+    "icon": "/api/assets/logos/agents/core/aion.svg",
+    "source": "/api/assets/logos/brand/aion.svg"
+  },
+  {
+    "name": "claude",
+    "originalIcon": "/api/assets/logos/ai-major/claude.svg",
+    "icon": "/api/assets/logos/agents/core/claude.svg",
+    "source": "Pixel robot from the user-supplied visual reference; same geometry as the previous homepage mark."
+  },
+  {
+    "name": "codex",
+    "originalIcon": "/api/assets/logos/tools/coding/codex.svg",
+    "icon": "/api/assets/logos/agents/core/codex.svg",
+    "source": "Terminal chevron and underscore from the user-supplied visual reference."
+  },
+  {
+    "name": "gemini",
+    "originalIcon": "/api/assets/logos/ai-major/gemini.svg",
+    "icon": "/api/assets/logos/agents/core/gemini.svg",
+    "source": "/api/assets/logos/ai-major/gemini.svg"
+  },
+  {
+    "name": "kimi",
+    "originalIcon": "/api/assets/logos/ai-china/kimi.svg",
+    "icon": "/api/assets/logos/agents/core/kimi.svg",
+    "source": "/api/assets/logos/ai-china/kimi.svg"
+  },
+  {
+    "name": "qwen",
+    "originalIcon": "/api/assets/logos/ai-china/qwen.svg",
+    "icon": "/api/assets/logos/agents/core/qwen.svg",
+    "source": "/api/assets/logos/ai-china/qwen.svg"
+  },
+  {
+    "name": "mimo-code",
+    "originalIcon": "/api/assets/logos/acp-registry/mimo-code.svg",
+    "icon": "/api/assets/logos/agents/core/mimo-code.svg",
+    "source": "/api/assets/logos/acp-registry/mimo-code.svg"
+  },
+  {
+    "name": "pi",
+    "originalIcon": "/api/assets/logos/tools/pi.svg",
+    "icon": "/api/assets/logos/agents/core/pi.svg",
+    "source": "/api/assets/logos/tools/pi.svg"
+  },
+  {
+    "name": "codebuddy",
+    "originalIcon": "/api/assets/logos/tools/coding/codebuddy.svg",
+    "icon": "/api/assets/logos/agents/coding/codebuddy.svg",
+    "source": "https://raw.githubusercontent.com/lobehub/lobe-icons/master/packages/static-svg/icons/codebuddy.svg"
+  },
+  {
+    "name": "cursor",
+    "originalIcon": "/api/assets/logos/tools/coding/cursor.png",
+    "icon": "/api/assets/logos/agents/coding/cursor.svg",
+    "source": "https://raw.githubusercontent.com/lobehub/lobe-icons/master/packages/static-svg/icons/cursor.svg"
+  },
+  {
+    "name": "qoder",
+    "originalIcon": "/api/assets/logos/tools/coding/qoder.png",
+    "icon": "/api/assets/logos/agents/coding/qoder.svg",
+    "source": "https://raw.githubusercontent.com/lobehub/lobe-icons/master/packages/static-svg/icons/qoder.svg"
+  },
+  {
+    "name": "opencode",
+    "originalIcon": "/api/assets/logos/tools/coding/opencode-light.svg",
+    "icon": "/api/assets/logos/agents/coding/opencode.svg",
+    "source": "/api/assets/logos/tools/coding/opencode-light.svg"
+  },
+  {
+    "name": "vibe",
+    "originalIcon": "/api/assets/logos/ai-major/mistral.svg",
+    "icon": "/api/assets/logos/agents/coding/vibe.svg",
+    "source": "https://raw.githubusercontent.com/lobehub/lobe-icons/master/packages/static-svg/icons/mistral.svg"
+  },
+  {
+    "name": "kiro",
+    "originalIcon": null,
+    "icon": "/api/assets/logos/agents/coding/kiro.svg",
+    "source": "https://raw.githubusercontent.com/lobehub/lobe-icons/master/packages/static-svg/icons/kiro.svg"
+  },
+  {
+    "name": "snow",
+    "originalIcon": "/api/assets/logos/tools/coding/snow.png",
+    "icon": "/api/assets/logos/agents/coding/snow.svg",
+    "source": "Monochrome adaptation of bundled tools/coding/snow.png; snowflake geometry from Lobe Icons snowflake.svg."
+  },
+  {
+    "name": "copilot",
+    "originalIcon": "/api/assets/logos/tools/github.svg",
+    "icon": "/api/assets/logos/agents/coding/copilot.svg",
+    "source": "https://raw.githubusercontent.com/lobehub/lobe-icons/master/packages/static-svg/icons/githubcopilot.svg"
+  },
+  {
+    "name": "auggie",
+    "originalIcon": "/api/assets/logos/brand/auggie.svg",
+    "icon": "/api/assets/logos/agents/runtimes/auggie.svg",
+    "source": "/api/assets/logos/brand/auggie.svg"
+  },
+  {
+    "name": "droid",
+    "originalIcon": "/api/assets/logos/brand/droid.svg",
+    "icon": "/api/assets/logos/agents/runtimes/droid.svg",
+    "source": "/api/assets/logos/brand/droid.svg"
+  },
+  {
+    "name": "goose",
+    "originalIcon": "/api/assets/logos/tools/goose.svg",
+    "icon": "/api/assets/logos/agents/runtimes/goose.svg",
+    "source": "/api/assets/logos/tools/goose.svg"
+  },
+  {
+    "name": "hermes",
+    "originalIcon": "/api/assets/logos/brand/hermes.svg",
+    "icon": "/api/assets/logos/agents/runtimes/hermes.svg",
+    "source": "/api/assets/logos/brand/hermes.svg"
+  },
+  {
+    "name": "openclaw",
+    "originalIcon": "/api/assets/logos/tools/openclaw.svg",
+    "icon": "/api/assets/logos/agents/runtimes/openclaw.svg",
+    "source": "/api/assets/logos/tools/openclaw.svg"
+  },
+  {
+    "name": "nanobot",
+    "originalIcon": "/api/assets/logos/tools/nanobot.svg",
+    "icon": "/api/assets/logos/agents/runtimes/nanobot.svg",
+    "source": "/api/assets/logos/tools/nanobot.svg"
+  },
+  {
+    "name": "antigravity",
+    "originalIcon": "/api/assets/logos/ai-major/antigravity.svg",
+    "icon": "/api/assets/logos/agents/runtimes/antigravity.svg",
+    "source": "https://raw.githubusercontent.com/lobehub/lobe-icons/master/packages/static-svg/icons/antigravity.svg"
+  },
+  {
+    "name": "amp-acp",
+    "originalIcon": "/api/assets/logos/acp-registry/amp-acp.svg",
+    "icon": "/api/assets/logos/agents/registry-a/amp-acp.svg",
+    "source": "/api/assets/logos/acp-registry/amp-acp.svg"
+  },
+  {
+    "name": "autohand",
+    "originalIcon": "/api/assets/logos/acp-registry/autohand.svg",
+    "icon": "/api/assets/logos/agents/registry-a/autohand.svg",
+    "source": "/api/assets/logos/acp-registry/autohand.svg"
+  },
+  {
+    "name": "cortex-code",
+    "originalIcon": "/api/assets/logos/acp-registry/cortex-code.svg",
+    "icon": "/api/assets/logos/agents/registry-a/cortex-code.svg",
+    "source": "/api/assets/logos/acp-registry/cortex-code.svg"
+  },
+  {
+    "name": "corust-agent",
+    "originalIcon": "/api/assets/logos/acp-registry/corust-agent.svg",
+    "icon": "/api/assets/logos/agents/registry-a/corust-agent.svg",
+    "source": "/api/assets/logos/acp-registry/corust-agent.svg"
+  },
+  {
+    "name": "deepagents",
+    "originalIcon": "/api/assets/logos/acp-registry/deepagents.svg",
+    "icon": "/api/assets/logos/agents/registry-a/deepagents.svg",
+    "source": "/api/assets/logos/acp-registry/deepagents.svg"
+  },
+  {
+    "name": "devin",
+    "originalIcon": "/api/assets/logos/acp-registry/devin.svg",
+    "icon": "/api/assets/logos/agents/registry-a/devin.svg",
+    "source": "/api/assets/logos/acp-registry/devin.svg"
+  },
+  {
+    "name": "dimcode",
+    "originalIcon": "/api/assets/logos/acp-registry/dimcode.svg",
+    "icon": "/api/assets/logos/agents/registry-a/dimcode.svg",
+    "source": "/api/assets/logos/acp-registry/dimcode.svg"
+  },
+  {
+    "name": "dirac",
+    "originalIcon": "/api/assets/logos/acp-registry/dirac.svg",
+    "icon": "/api/assets/logos/agents/registry-a/dirac.svg",
+    "source": "/api/assets/logos/acp-registry/dirac.svg"
+  },
+  {
+    "name": "glm-acp-agent",
+    "originalIcon": "/api/assets/logos/acp-registry/glm-acp-agent.svg",
+    "icon": "/api/assets/logos/agents/registry-a/glm-acp-agent.svg",
+    "source": "/api/assets/logos/acp-registry/glm-acp-agent.svg"
+  },
+  {
+    "name": "grok",
+    "originalIcon": "/api/assets/logos/acp-registry/grok.svg",
+    "icon": "/api/assets/logos/agents/registry-b/grok.svg",
+    "source": "/api/assets/logos/acp-registry/grok.svg"
+  },
+  {
+    "name": "harn",
+    "originalIcon": "/api/assets/logos/acp-registry/harn.svg",
+    "icon": "/api/assets/logos/agents/registry-b/harn.svg",
+    "source": "/api/assets/logos/acp-registry/harn.svg"
+  },
+  {
+    "name": "junie",
+    "originalIcon": "/api/assets/logos/acp-registry/junie.svg",
+    "icon": "/api/assets/logos/agents/registry-b/junie.svg",
+    "source": "/api/assets/logos/acp-registry/junie.svg"
+  },
+  {
+    "name": "kilo",
+    "originalIcon": "/api/assets/logos/acp-registry/kilo.svg",
+    "icon": "/api/assets/logos/agents/registry-b/kilo.svg",
+    "source": "/api/assets/logos/acp-registry/kilo.svg"
+  },
+  {
+    "name": "nova",
+    "originalIcon": "/api/assets/logos/acp-registry/nova.svg",
+    "icon": "/api/assets/logos/agents/registry-b/nova.svg",
+    "source": "/api/assets/logos/acp-registry/nova.svg"
+  },
+  {
+    "name": "omp",
+    "originalIcon": "/api/assets/logos/acp-registry/omp.svg",
+    "icon": "/api/assets/logos/agents/registry-b/omp.svg",
+    "source": "/api/assets/logos/acp-registry/omp.svg"
+  },
+  {
+    "name": "poolside",
+    "originalIcon": "/api/assets/logos/acp-registry/poolside.svg",
+    "icon": "/api/assets/logos/agents/registry-b/poolside.svg",
+    "source": "/api/assets/logos/acp-registry/poolside.svg"
+  },
+  {
+    "name": "sigit",
+    "originalIcon": "/api/assets/logos/acp-registry/sigit.svg",
+    "icon": "/api/assets/logos/agents/registry-b/sigit.svg",
+    "source": "Bundled Sigit wordmark: original lettering contours and motion streaks, with the traced rectangular backdrop removed."
+  },
+  {
+    "name": "stakpak",
+    "originalIcon": "/api/assets/logos/acp-registry/stakpak.svg",
+    "icon": "/api/assets/logos/agents/registry-b/stakpak.svg",
+    "source": "/api/assets/logos/acp-registry/stakpak.svg"
+  },
+  {
+    "name": "vtcode",
+    "originalIcon": "/api/assets/logos/acp-registry/vtcode.svg",
+    "icon": "/api/assets/logos/agents/registry-b/vtcode.svg",
+    "source": "/api/assets/logos/acp-registry/vtcode.svg"
+  }
+]

@@ -154,7 +154,7 @@
   "assistantAvatarUploadImage": "Görsel yükle",
   "assistantAvatarImageFiles": "Görsel dosyaları",
   "assistantAvatarEmojiTab": "Emoji",
-  "assistantAvatarBuiltinTab": "Yerleşik görseller",
+  "assistantAvatarBuiltinTab": "Karakter avatarları",
   "assistantAvatarNoBuiltinImages": "Yerleşik görsel yok",
   "assistantPrompt": "İstem (Prompt)",
   "assistantPromptPlaceholder": "Kural veya istem girin...",
@@ -1414,5 +1414,15 @@
   "crossSessionMessageDesc": "Aracıların diğer sohbetlerinize mesaj göndermesine izin verir. Kapatmak giriş alanındaki @@ sohbet etiketini de devre dışı bırakır.",
   "crossSessionMessageDisabledBanner": "Sohbetler arası mesajlar kapalı, @@ sohbet etiketi kullanılamıyor.",
   "crossSessionMessageResume": "Yeniden aç",
-  "crossSessionMessageUpdateFailed": "Sohbetler arası mesaj ayarı güncellenemedi"
+  "crossSessionMessageUpdateFailed": "Sohbetler arası mesaj ayarı güncellenemedi",
+  "emojiCategories": {
+    "recent": "Son kullanılanlar",
+    "smileys": "Yüzler",
+    "animals": "Hayvanlar",
+    "food": "Yiyecekler",
+    "activities": "Etkinlikler",
+    "objects": "Nesneler",
+    "symbols": "Semboller",
+    "flags": "Bayraklar"
+  }
 }

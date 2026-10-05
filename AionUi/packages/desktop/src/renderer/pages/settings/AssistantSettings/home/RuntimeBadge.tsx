@@ -41,7 +41,7 @@ const RuntimeBadge: React.FC<{
         <span className='text-t-quaternary'>{t('settings.assistantRuntimeLabel', { defaultValue: 'runtime:' })}</span>
       ) : null}
       {logo ? (
-        <ThemedLogo src={logo} alt='' className='h-15px w-15px object-contain' />
+        <ThemedLogo src={logo} alt='' className='h-15px w-15px object-contain text-t-primary' />
       ) : (
         <Robot theme='outline' size={13} fill='currentColor' />
       )}

@@ -100,11 +100,21 @@ export type ThemedLogoProps = {
   className?: string;
   style?: React.CSSProperties;
   title?: string;
+  /** Preserve the edges of known pixel-art avatars. Never inferred from image URLs. */
+  pixelated?: boolean;
   /** Rendered when `src` is empty. */
   fallback?: React.ReactNode;
 };
 
-const ThemedLogo: React.FC<ThemedLogoProps> = ({ src, alt, className, style, title, fallback = null }) => {
+const ThemedLogo: React.FC<ThemedLogoProps> = ({
+  src,
+  alt,
+  className,
+  style,
+  title,
+  pixelated = false,
+  fallback = null,
+}) => {
   const tintable = useTintableLogo(src);
 
   if (!src) return <>{fallback}</>;
@@ -148,7 +158,15 @@ const ThemedLogo: React.FC<ThemedLogoProps> = ({ src, alt, className, style, tit
     );
   }
 
-  return <img src={src} alt={alt} title={title} className={className} style={style} />;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      title={title}
+      className={className}
+      style={pixelated ? { ...style, imageRendering: 'pixelated' } : style}
+    />
+  );
 };
 
 /**

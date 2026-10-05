@@ -154,7 +154,7 @@
   "assistantAvatarUploadImage": "آپلود تصویر",
   "assistantAvatarImageFiles": "فایل‌های تصویری",
   "assistantAvatarEmojiTab": "ایموجی",
-  "assistantAvatarBuiltinTab": "داخلی",
+  "assistantAvatarBuiltinTab": "آواتار شخصیت‌ها",
   "assistantAvatarNoBuiltinImages": "تصویر داخلی وجود ندارد",
   "assistantPrompt": "پرامپت",
   "assistantPromptPlaceholder": "پرامپت یا قوانین را وارد کنید...",
@@ -1414,5 +1414,15 @@
   "crossSessionMessageDesc": "به عامل‌ها اجازه می‌دهد به گفتگوهای دیگر شما پیام بفرستند. با خاموش کردن، منشن @@ در کادر ورودی نیز غیرفعال می‌شود.",
   "crossSessionMessageDisabledBanner": "پیام‌های بین گفتگوها خاموش است، منشن @@ در دسترس نیست.",
   "crossSessionMessageResume": "روشن کردن دوباره",
-  "crossSessionMessageUpdateFailed": "به‌روزرسانی تنظیم پیام‌های بین گفتگوها ناموفق بود"
+  "crossSessionMessageUpdateFailed": "به‌روزرسانی تنظیم پیام‌های بین گفتگوها ناموفق بود",
+  "emojiCategories": {
+    "recent": "اخیر",
+    "smileys": "چهره‌ها",
+    "animals": "حیوانات",
+    "food": "خوراکی‌ها",
+    "activities": "فعالیت‌ها",
+    "objects": "اشیا",
+    "symbols": "نمادها",
+    "flags": "پرچم‌ها"
+  }
 }

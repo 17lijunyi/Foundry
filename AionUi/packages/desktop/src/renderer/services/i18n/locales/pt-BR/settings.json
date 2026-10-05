@@ -154,7 +154,7 @@
   "assistantAvatarUploadImage": "Enviar imagem",
   "assistantAvatarImageFiles": "Arquivos de imagem",
   "assistantAvatarEmojiTab": "Emoji",
-  "assistantAvatarBuiltinTab": "Imagens integradas",
+  "assistantAvatarBuiltinTab": "Avatares de personagens",
   "assistantAvatarNoBuiltinImages": "Nenhuma imagem integrada",
   "assistantPrompt": "Prompt",
   "assistantPromptPlaceholder": "Enter prompt or rules...",
@@ -1417,5 +1417,15 @@
   "crossSessionMessageDesc": "Permite que agentes enviem mensagens para suas outras conversas. Desativar também desliga a menção @@ na caixa de entrada.",
   "crossSessionMessageDisabledBanner": "As mensagens entre conversas estão desativadas, a menção @@ não está disponível.",
   "crossSessionMessageResume": "Ativar novamente",
-  "crossSessionMessageUpdateFailed": "Falha ao atualizar a configuração de mensagens entre conversas"
+  "crossSessionMessageUpdateFailed": "Falha ao atualizar a configuração de mensagens entre conversas",
+  "emojiCategories": {
+    "recent": "Recentes",
+    "smileys": "Rostos",
+    "animals": "Animais",
+    "food": "Comida",
+    "activities": "Atividades",
+    "objects": "Objetos",
+    "symbols": "Símbolos",
+    "flags": "Bandeiras"
+  }
 }

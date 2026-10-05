@@ -154,7 +154,7 @@
   "assistantAvatarUploadImage": "Bild hochladen",
   "assistantAvatarImageFiles": "Bilddateien",
   "assistantAvatarEmojiTab": "Emoji",
-  "assistantAvatarBuiltinTab": "Eingebaut",
+  "assistantAvatarBuiltinTab": "Charakteravatare",
   "assistantAvatarNoBuiltinImages": "Keine eingebauten Bilder",
   "assistantPrompt": "Prompt",
   "assistantPromptPlaceholder": "Prompt oder Regeln eingeben...",
@@ -1414,5 +1414,15 @@
   "crossSessionMessageDesc": "Erlaubt Agenten, Nachrichten an Ihre anderen Unterhaltungen zu senden. Beim Ausschalten wird auch die @@-Erwähnung im Eingabefeld deaktiviert.",
   "crossSessionMessageDisabledBanner": "Nachrichten zwischen Unterhaltungen sind aus, die @@-Erwähnung ist nicht verfügbar.",
   "crossSessionMessageResume": "Wieder einschalten",
-  "crossSessionMessageUpdateFailed": "Einstellung konnte nicht aktualisiert werden"
+  "crossSessionMessageUpdateFailed": "Einstellung konnte nicht aktualisiert werden",
+  "emojiCategories": {
+    "recent": "Zuletzt verwendet",
+    "smileys": "Smileys",
+    "animals": "Tiere",
+    "food": "Essen",
+    "activities": "Aktivitäten",
+    "objects": "Objekte",
+    "symbols": "Symbole",
+    "flags": "Flaggen"
+  }
 }
