@@ -4,11 +4,21 @@
 
 **把想法、资料和 AI 协作，放进一个轻盈的产品工作台。**
 
+**由 [@17lijunyi](https://github.com/17lijunyi) 主导 Foundry 的产品设计、定制开发与维护。**
+
 Foundry 是面向产品经理的桌面 AI 工作台，围绕需求梳理、文档协作、项目资料和模型对比组织日常工作。界面采用紧凑的助手入口、以输入为中心的布局，以及受 Liquid Glass 启发的半透明材质。
 
-由 [@17lijunyi](https://github.com/17lijunyi) 主导 Foundry 的产品设计、定制开发与维护，完成品牌、玻璃界面、交互动效、角色头像与桌面窗口体验等改造。开发基础与署名范围见[来源、许可与反馈](#来源许可与反馈)和[作者说明](docs/AUTHORS.md)。
+Foundry 的定制开发聚焦品牌、界面与交互体验，让工作空间、会话、设置和模型对比使用统一的视觉语言。
 
-> 当前提供源码，尚未提供 Foundry 的公开 Releases 安装包。下方是源码启动与本地构建方法；上游 AionUi 的安装包不会包含本仓库的定制内容。
+> 当前提供源码，尚未提供 Foundry 的公开 Releases 安装包。下方是源码启动与本地构建方法。
+
+## Foundry 的设计与定制
+
+- **品牌与工作空间**：Foundry 名称与折带 F 图标、以输入为中心的布局、浮动导航和输入区。
+- **统一玻璃界面**：工作空间、会话、设置和模型对比采用一致的半透明材质，macOS 集成原生玻璃。
+- **助手视觉**：Agent 使用统一的单色品牌图标；21 个官方助手使用与任务相关的像素角色头像，自定义助手可从这套头像中选择。
+- **交互细节**：十种动效呼应真实操作与状态变化，结合消息发送、排队与异步编辑中的草稿保护。
+- **macOS 窗口体验**：绿色按钮在当前桌面放大或还原窗口，保留普通窗口的使用方式。
 
 ## 可以做什么
 
@@ -16,9 +26,6 @@ Foundry 是面向产品经理的桌面 AI 工作台，围绕需求梳理、文�
 - **助手与模型配置**：保留助手、模型服务、团队和定时任务等既有入口。外部模型服务和 CLI 助手需要自行配置、安装或登录。
 - **模型对比台**：用相同提示词和材料比较 2～4 个模型，查看独立流式回答、状态与耗时，支持停止、重试和保存对比记录。
 - **文件预览与修改**：打开对话中的文件，在支持编辑的预览中检查修改前后内容，再确认保存；撤回会恢复为待保存草稿，不会静默覆盖磁盘文件。
-- **统一桌面体验**：Foundry 名称与折带 F 图标、紧凑助手图标、浮动导航和输入区，覆盖工作空间、会话、设置与模型对比页面。
-- **助手视觉与头像选择**：Agent 入口使用统一的单色品牌图标；21 个官方助手使用与任务相关的像素角色头像，自定义助手也可从这套头像中选择。
-- **macOS 窗口操作**：绿色按钮在当前桌面放大或还原窗口，保留普通窗口的使用方式。
 
 模型对比的协议、材料大小和记录限制见[模型对比台说明](AionUi/docs/guides/model-bench.zh-CN.md)。模型调用由所配置的服务提供，源码不附带账号、密钥或免费额度。
 
@@ -135,15 +142,14 @@ Foundry/
 
 请保留两个子目录的同级关系。仓库不包含依赖目录、编译产物、聊天记录或个人凭据。开发版使用独立开发配置目录；正式版保留“产品经理工作台”的数据目录名称及既有应用标识，以兼容原有本地数据。备份和排查时不要仅按 Foundry 显示名称判断数据位置。
 
-## 来源、许可与反馈
+## 许可与来源
 
-Foundry 的品牌、界面和交互动效改造基于以下项目继续开发：
+Foundry 在现有开源代码基础上进行产品化定制。项目来源、版权声明与署名范围见 [NOTICE](NOTICE) 和[作者说明](docs/AUTHORS.md)；实现与修改记录见 [docs/MODIFICATIONS.md](docs/MODIFICATIONS.md)。
 
-1. [产品经理工作台 / 周承健](https://github.com/Zhouchengjian-user/product-manager-workbench)：前代产品定位、模型对比、项目文件夹和中文体验等定制。
-2. [AionUi](https://github.com/iOfficeAI/AionUi) 与 [AionCore](https://github.com/iOfficeAI/AionCore)：桌面架构、后端与通用助手、会话、团队、定时任务等基础能力。
+Foundry 自有新增及修改部分沿用 Apache-2.0。许可文本见 [LICENSE](LICENSE)、[AionUi/LICENSE](AionUi/LICENSE) 和 [AionCore/LICENSE](AionCore/LICENSE)，第三方代码、素材和商标遵循各自声明。AionCore 原有 Cargo 元数据标记为 MIT，与其随附 Apache-2.0 许可证文本存在差异；本分支未据此重写上游授权声明。
 
-原版权声明与 Apache-2.0 许可证文本保持保留。Foundry 自有新增及修改部分沿用 Apache-2.0；第三方代码、素材和商标仍遵循各自声明，不表示获得上游官方背书。详见 [LICENSE](LICENSE)、[NOTICE](NOTICE)、[AionUi/LICENSE](AionUi/LICENSE) 和 [AionCore/LICENSE](AionCore/LICENSE)。AionCore 原有 Cargo 元数据标记为 MIT，与其随附 Apache-2.0 许可证文本存在差异；本分支未据此重写上游授权声明。
+`FILES.sha256` 仅保留最初源码快照的校验值，不代表当前 Foundry 版本。
 
-[修改记录](docs/MODIFICATIONS.md)与[作者说明](docs/AUTHORS.md)同时记录 Foundry 的改造和前代产品的历史来源。`FILES.sha256` 仅保留最初源码快照的校验值，不代表当前 Foundry 版本。
+## 反馈
 
 问题与建议请提交至 [Foundry Issues](https://github.com/17lijunyi/Foundry/issues)。请说明系统、架构、复现步骤和使用的助手或模型接口，并移除密钥及私人会话内容。
