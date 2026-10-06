@@ -73,7 +73,11 @@
     "selectedMembersTitleWithCount": "Selected members {{count}}",
     "leaderLegend": "= Leader",
     "membersHelper": "Choose team members and assign one Leader. The same assistant can be selected multiple times.",
-    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat.",
+    "productTeamName": "製品開発と改善",
+    "productTeamPreset": "製品改善チームを使用",
+    "productTeamHint": "プロダクトマネージャーが指揮し、PRD と開発のアシスタントが公開後も同じプロジェクトで改善を続けます。",
+    "productTeamUnavailable": "3 つの製品アシスタントを有効にして Agent を設定すると、このチームを利用できます。"
   },
   "removeAgent": {
     "confirmTitle": "チームメンバーを削除",

@@ -73,7 +73,11 @@
     "selectedMembersTitleWithCount": "Selected members {{count}}",
     "leaderLegend": "= Leader",
     "membersHelper": "Choose team members and assign one Leader. The same assistant can be selected multiple times.",
-    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat.",
+    "productTeamName": "توسعه و بهبود محصول",
+    "productTeamPreset": "استفاده از تیم بهبود محصول",
+    "productTeamHint": "مدیر محصول هدایت می‌کند؛ دستیاران PRD و توسعه پس از انتشار نیز در همان پروژه همکاری می‌کنند.",
+    "productTeamUnavailable": "برای استفاده از این تیم، سه دستیار محصول را فعال و Agent آن‌ها را پیکربندی کنید."
   },
   "removeAgent": {
     "confirmTitle": "حذف عضو تیم",

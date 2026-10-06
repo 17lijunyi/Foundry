@@ -46,6 +46,16 @@ export function filterTeamSupportedAssistants(assistants: TeamAssistantOption[])
   return assistants;
 }
 
+/** Resolve the product roles while preserving migrated assistant identities. */
+export function resolveProductTeamAssistants(assistants: TeamAssistantOption[]): TeamAssistantOption[] | null {
+  const roles = ['aionui-assistant', 'foundry-prd', 'foundry-development'];
+  const selected = roles.map((id) =>
+    assistants.find((assistant) => assistant.id === id || assistant.id === `preset-${id}`)
+  );
+  if (selected.some((assistant) => !assistant || assistant.team_selectable === false)) return null;
+  return selected as TeamAssistantOption[];
+}
+
 type AssistantOptionLabelProps = {
   assistant: TeamAssistantOption;
   size?: 'compact' | 'large';

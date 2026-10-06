@@ -57,6 +57,112 @@
       "models": []
     },
     {
+      "id": "foundry-prd",
+      "sort_order": 1,
+      "default_enabled": true,
+      "name": "PRD & Iteration Assistant",
+      "name_i18n": {
+        "en-US": "PRD & Iteration Assistant",
+        "zh-CN": "PRD 与迭代助手",
+        "ru-RU": "Помощник по PRD и итерациям",
+        "uk-UA": "Помічник з PRD та ітерацій"
+      },
+      "description": "Clarify ideas, save confirmed PRD versions, plan feature changes and hand off requirements within the shared project.",
+      "description_i18n": {
+        "en-US": "Clarify ideas, save confirmed PRD versions, plan feature changes and hand off requirements within the shared project.",
+        "zh-CN": "澄清产品想法、保存 PRD 版本、规划功能迭代；确认需求后在同一项目内交接开发。",
+        "ru-RU": "Уточняет продуктовые идеи, сохраняет версии PRD и планирует изменения; после подтверждения передаёт требования разработчику в общем проекте.",
+        "uk-UA": "Уточнює продуктові ідеї, зберігає версії PRD і планує зміни; після підтвердження передає вимоги розробнику у спільному проєкті."
+      },
+      "avatar": "pixel-avatars/office/word-creator.png",
+      "agent_ref": "aionrs",
+      "enabled_skills": [],
+      "custom_skill_names": [],
+      "disabled_builtin_skills": [],
+      "rule_file": "rules/foundry-prd.{locale}.md",
+      "prompts": [
+        "Help me turn a product idea into a PRD and save it in this project",
+        "Review this PRD, identify missing decisions and prepare it for confirmation",
+        "Plan a new version for this released product, preserving its existing PRD and features"
+      ],
+      "prompts_i18n": {
+        "en-US": [
+          "Help me turn a product idea into a PRD and save it in this project",
+          "Review this PRD, identify missing decisions and prepare it for confirmation",
+          "Plan a new version for this released product, preserving its existing PRD and features"
+        ],
+        "zh-CN": [
+          "帮我把产品想法整理成 PRD，并保存在当前项目里",
+          "检查这份 PRD 的缺口，补齐后让我确认版本",
+          "给已上线产品规划新版本，保留原 PRD 和现有功能"
+        ],
+        "ru-RU": [
+          "Помоги превратить мою продуктовую идею в PRD и сохранить его в этом проекте",
+          "Проверь этот PRD, найди недостающие решения и подготовь версию к подтверждению",
+          "Спланируй новую версию запущенного продукта, сохранив прежний PRD и существующие функции"
+        ],
+        "uk-UA": [
+          "Допоможи перетворити мою продуктову ідею на PRD і зберегти його в цьому проєкті",
+          "Перевір цей PRD, знайди відсутні рішення та підготуй версію до підтвердження",
+          "Сплануй нову версію запущеного продукту, зберігши попередній PRD та наявні функції"
+        ]
+      },
+      "models": []
+    },
+    {
+      "id": "foundry-development",
+      "sort_order": 2,
+      "default_enabled": true,
+      "name": "Development & Launch Assistant",
+      "name_i18n": {
+        "en-US": "Development & Launch Assistant",
+        "zh-CN": "开发与上线助手",
+        "ru-RU": "Помощник по разработке и запуску",
+        "uk-UA": "Помічник з розробки та запуску"
+      },
+      "description": "Develop from a confirmed PRD through approved stage handbooks, human acceptance, checkpoints and launch; resume future iterations in the same project.",
+      "description_i18n": {
+        "en-US": "Develop from a confirmed PRD through approved stage handbooks, human acceptance, checkpoints and launch; resume future iterations in the same project.",
+        "zh-CN": "根据确认的 PRD，分阶段审手册、开发、验收、存档与上线；在同一项目继续后续迭代。",
+        "ru-RU": "Разрабатывает продукт по подтверждённому PRD: согласование этапов, разработка, приёмка, сохранение результатов и запуск с дальнейшими итерациями в том же проекте.",
+        "uk-UA": "Розробляє продукт за підтвердженим PRD: погодження етапів, розробка, приймання, збереження результатів і запуск із подальшими ітераціями в тому самому проєкті."
+      },
+      "avatar": "pixel-avatars/specialist/planning-with-files.png",
+      "agent_ref": "aionrs",
+      "enabled_skills": [],
+      "custom_skill_names": [],
+      "disabled_builtin_skills": [],
+      "rule_file": "rules/foundry-development.{locale}.md",
+      "prompts": [
+        "Read the confirmed PRD and prepare the first stage handbook for my approval",
+        "Resume this project from its saved progress and show the next acceptance steps",
+        "Check launch readiness and prepare deployment, validation and rollback instructions"
+      ],
+      "prompts_i18n": {
+        "en-US": [
+          "Read the confirmed PRD and prepare the first stage handbook for my approval",
+          "Resume this project from its saved progress and show the next acceptance steps",
+          "Check launch readiness and prepare deployment, validation and rollback instructions"
+        ],
+        "zh-CN": [
+          "读取已确认 PRD，先生成本阶段技术手册让我确认",
+          "按项目保存的进度继续开发，并告诉我如何验收",
+          "检查上线准备情况，整理部署、验证和回退步骤"
+        ],
+        "ru-RU": [
+          "Прочитай подтверждённый PRD и подготовь руководство первого этапа для моего согласования",
+          "Продолжи разработку с сохранённого этапа и объясни, как провести приёмку",
+          "Проверь готовность к запуску и подготовь инструкции по развёртыванию, проверке и откату"
+        ],
+        "uk-UA": [
+          "Прочитай підтверджений PRD і підготуй інструкцію першого етапу для мого погодження",
+          "Продовж розробку зі збереженого етапу та поясни, як провести приймання",
+          "Перевір готовність до запуску й підготуй інструкції з розгортання, перевірки та відкату"
+        ]
+      },
+      "models": []
+    },
+    {
       "id": "ppt-creator",
       "sort_order": 20,
       "default_enabled": false,
@@ -1090,19 +1196,19 @@
       "id": "aionui-assistant",
       "sort_order": 0,
       "default_enabled": true,
-      "name": "AionUi Butler",
+      "name": "Product Manager Assistant",
       "name_i18n": {
-        "en-US": "AionUi Butler",
-        "zh-CN": "AionUi管家",
-        "ru-RU": "Дворецкий AionUi",
-        "uk-UA": "Дворецький AionUi"
+        "en-US": "Product Manager Assistant",
+        "zh-CN": "产品经理助手",
+        "ru-RU": "Помощник продакт-менеджера",
+        "uk-UA": "Помічник продуктового менеджера"
       },
-      "description": "Your all-in-one AionUi butler: set up assistants, skills, MCP servers and LLM providers; set up remote access so you can reach AionUi from your phone or share a link; and diagnose problems like stuck conversations, failing models, or a scheduled task that didn't run.",
+      "description": "Your all-in-one AionUi butler: set up assistants, skills, MCP servers and LLM providers; set up remote access so you can reach AionUi from your phone or share a link; and diagnose problems like stuck conversations, failing models, or a scheduled task that didn't run. Coordinate PRD confirmation, development, acceptance and future iteration with the two product assistants in a shared project.",
       "description_i18n": {
-        "en-US": "Your all-in-one AionUi butler: set up assistants, skills, MCP servers and LLM providers; set up remote access so you can reach AionUi from your phone or share a link; and diagnose problems like stuck conversations, failing models, or a scheduled task that didn't run.",
-        "zh-CN": "你的 AionUi 全能管家：配置助手、技能、MCP 服务器与 LLM 模型；设置远程访问，让你在手机或外网也能打开 AionUi、生成分享链接；还能诊断卡住的会话、失败的模型调用，或定时任务为何没执行。",
-        "ru-RU": "Ваш универсальный дворецкий AionUi: настройка ассистентов, навыков, серверов MCP и провайдеров LLM; настройка удалённого доступа, чтобы открывать AionUi с телефона или делиться ссылкой; и диагностика проблем — зависших разговоров, сбоев моделей или почему не выполнилась запланированная задача.",
-        "uk-UA": "Ваш універсальний дворецький AionUi: налаштування асистентів, навичок, серверів MCP і провайдерів LLM; налаштування віддаленого доступу, щоб відкривати AionUi з телефона або ділитися посиланням; і діагностика проблем — зависань розмов, збоїв моделей або чому не виконалося заплановане завдання."
+        "en-US": "Your all-in-one AionUi butler: set up assistants, skills, MCP servers and LLM providers; set up remote access so you can reach AionUi from your phone or share a link; and diagnose problems like stuck conversations, failing models, or a scheduled task that didn't run. Coordinate PRD confirmation, development, acceptance and future iteration with the two product assistants in a shared project.",
+        "zh-CN": "你的 AionUi 全能管家：配置助手、技能、MCP 服务器与 LLM 模型；设置远程访问，让你在手机或外网也能打开 AionUi、生成分享链接；还能诊断卡住的会话、失败的模型调用，或定时任务为何没执行。 也能在团队中协调 PRD 确认、开发、验收与后续迭代，让两个产品助手在同一项目协作。",
+        "ru-RU": "Ваш универсальный дворецкий AionUi: настройка ассистентов, навыков, серверов MCP и провайдеров LLM; настройка удалённого доступа, чтобы открывать AionUi с телефона или делиться ссылкой; и диагностика проблем — зависших разговоров, сбоев моделей или почему не выполнилась запланированная задача. Также координирует подтверждение PRD, разработку, приёмку и последующие итерации двух продуктовых помощников в общем проекте.",
+        "uk-UA": "Ваш універсальний дворецький AionUi: налаштування асистентів, навичок, серверів MCP і провайдерів LLM; налаштування віддаленого доступу, щоб відкривати AionUi з телефона або ділитися посиланням; і діагностика проблем — зависань розмов, збоїв моделей або чому не виконалося заплановане завдання. Також координує підтвердження PRD, розробку, приймання та наступні ітерації двох продуктових помічників у спільному проєкті."
       },
       "avatar": "pixel-avatars/community/aionui-assistant.png",
       "agent_ref": "aionrs",
@@ -1115,6 +1221,7 @@
       "disabled_builtin_skills": [],
       "rule_file": "rules/aionui-assistant.{locale}.md",
       "prompts": [
+        "Coordinate my product team: clarify a PRD, confirm its version, then develop and iterate in this project",
         "Add a new LLM provider and API key, then set it as the default model",
         "Set up remote access for me, so I can open AionUi from my phone when I'm out",
         "A conversation is stuck — please diagnose what's wrong",
@@ -1122,24 +1229,28 @@
       ],
       "prompts_i18n": {
         "en-US": [
+          "Coordinate my product team: clarify a PRD, confirm its version, then develop and iterate in this project",
           "Add a new LLM provider and API key, then set it as the default model",
           "Set up remote access for me, so I can open AionUi from my phone when I'm out",
           "A conversation is stuck — please diagnose what's wrong",
           "Create a new assistant and attach a skill to it"
         ],
         "zh-CN": [
+          "协调产品团队：先明确并确认 PRD，再在当前项目分阶段开发和持续迭代",
           "添加一个新的 LLM 模型和 API Key，并设为默认模型",
           "帮我配置远程访问，让我在外面用手机也能打开 AionUi",
           "有个会话卡住了，帮我诊断哪里出了问题",
           "创建一个新助手，并给它绑定一个技能"
         ],
         "ru-RU": [
+          "Координируй продуктовую команду: уточни и подтверди PRD, затем организуй разработку и итерации в этом проекте",
           "Добавь нового провайдера LLM и API-ключ, затем сделай его моделью по умолчанию",
           "Настрой удалённый доступ, чтобы я мог открывать AionUi с телефона, когда меня нет",
           "Разговор завис — пожалуйста, диагностируй, что не так",
           "Создай нового ассистента и подключи к нему навык"
         ],
         "uk-UA": [
+          "Скоординуй продуктову команду: уточни й підтвердь PRD, потім організуй розробку та ітерації в цьому проєкті",
           "Додай нового провайдера LLM та API-ключ, потім зроби його моделлю за замовчуванням",
           "Налаштуй віддалений доступ, щоб я міг відкривати AionUi з телефона, коли мене немає",
           "Розмова зависла — будь ласка, діагностуй, що не так",

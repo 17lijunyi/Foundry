@@ -8,10 +8,33 @@ import { describe, expect, it } from 'vitest';
 import {
   assistantToOption,
   filterTeamSupportedAssistants,
+  resolveProductTeamAssistants,
 } from '@/renderer/pages/team/components/assistantSelectUtils';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 describe('assistantSelectUtils', () => {
+  it('resolves the product manager and specialists in workflow order across migrated identities', () => {
+    const options = ['foundry-development', 'preset-aionui-assistant', 'preset-foundry-prd'].map((id) => ({
+      id,
+      name: id,
+    }));
+    expect(resolveProductTeamAssistants(options)?.map((option) => option.id)).toEqual([
+      'preset-aionui-assistant',
+      'preset-foundry-prd',
+      'foundry-development',
+    ]);
+  });
+
+  it('does not assemble a partial product team when a role is missing or blocked', () => {
+    const options = ['aionui-assistant', 'foundry-prd', 'foundry-development'].map((id) => ({ id, name: id }));
+    expect(resolveProductTeamAssistants(options.slice(1))).toBeNull();
+    expect(
+      resolveProductTeamAssistants(
+        options.map((option) => ({ id: option.id, name: option.name, team_selectable: false }))
+      )
+    ).toBeNull();
+  });
+
   it('localizes assistant option names for the active locale', () => {
     const bareAssistant = makeAssistant({
       id: 'bare-aionrs',

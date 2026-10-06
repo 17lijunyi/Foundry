@@ -12,6 +12,7 @@ import type { Assistant } from '@/common/types/agent/assistantTypes';
 const createTeamInvokeMock = vi.fn();
 const resolveDefaultTeamAgentModelMock = vi.fn();
 const messageErrorMock = vi.fn();
+let suppliedAssistants: Assistant[] | undefined;
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -40,7 +41,7 @@ vi.mock('@renderer/hooks/context/AuthContext', () => ({
 
 vi.mock('@renderer/pages/conversation/hooks/useConversationAssistants', () => ({
   useConversationAssistants: () => ({
-    presetAssistants: assistants(),
+    presetAssistants: suppliedAssistants ?? assistants(),
   }),
 }));
 
@@ -94,7 +95,13 @@ vi.mock('@renderer/components/base/AionModal', () => {
 });
 
 vi.mock('@renderer/components/workspace', () => ({
-  WorkspaceFolderSelect: () => <div data-testid='workspace-folder-select' />,
+  WorkspaceFolderSelect: ({ onChange }: { onChange: (path: string) => void }) => (
+    <div data-testid='workspace-folder-select'>
+      <button type='button' onClick={() => onChange('/projects/product')}>
+        Choose test folder
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock('@/common', () => ({
@@ -123,6 +130,7 @@ const renderMobile = (ui: React.ReactElement) =>
 
 describe('TeamCreateModal', () => {
   beforeEach(() => {
+    suppliedAssistants = undefined;
     createTeamInvokeMock.mockReset();
     createTeamInvokeMock.mockResolvedValue({ id: 'team-1', assistants: [], agents: [] });
     resolveDefaultTeamAgentModelMock.mockReset();
@@ -147,6 +155,44 @@ describe('TeamCreateModal', () => {
     fireEvent.click(screen.getByTestId('team-create-agent-option-blocked-reviewer'));
 
     expect(createButton).toBeDisabled();
+  });
+
+  it('creates the product team with the manager leading and a shared workspace', async () => {
+    suppliedAssistants = productAssistants();
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+    fireEvent.click(screen.getByTestId('team-create-product-preset'));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose test folder' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
+
+    await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
+    expect(createTeamInvokeMock.mock.calls[0][0]).toMatchObject({
+      name: 'Product development and iteration',
+      workspace: '/projects/product',
+      workspace_mode: 'shared',
+      agents: [
+        { assistant_id: 'preset-aionui-assistant', role: 'leader' },
+        { assistant_id: 'foundry-prd', role: 'teammate' },
+        { assistant_id: 'foundry-development', role: 'teammate' },
+      ],
+    });
+  });
+
+  it('preserves the entered project name when using the product team preset', () => {
+    suppliedAssistants = productAssistants();
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+    fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'My existing product' } });
+    fireEvent.click(screen.getByTestId('team-create-product-preset'));
+    expect(screen.getByTestId('team-create-name-input')).toHaveValue('My existing product');
+    expect(screen.getAllByRole('button', { name: 'Current Leader' })).toHaveLength(1);
+  });
+
+  it('disables the product team shortcut if a required specialist is unavailable', () => {
+    suppliedAssistants = productAssistants();
+    suppliedAssistants.find((row) => row.id === 'foundry-prd')!.team_selectable = false;
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+    expect(screen.getByTestId('team-create-product-preset')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('team-create-product-preset'));
+    expect(screen.queryAllByTestId(/team-create-member-draft-/)).toHaveLength(0);
   });
 
   it('keeps blocked assistant rows single-line while the reason stays out of the row', () => {
@@ -373,11 +419,20 @@ describe('TeamCreateModal', () => {
 
 describe('TeamCreateModal · mobile (narrow screen)', () => {
   beforeEach(() => {
+    suppliedAssistants = undefined;
     createTeamInvokeMock.mockReset();
     createTeamInvokeMock.mockResolvedValue({ id: 'team-1', assistants: [], agents: [] });
     resolveDefaultTeamAgentModelMock.mockReset();
     resolveDefaultTeamAgentModelMock.mockResolvedValue(undefined);
     messageErrorMock.mockReset();
+  });
+
+  it('offers the same product team shortcut on mobile', () => {
+    suppliedAssistants = productAssistants();
+    renderMobile(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+    fireEvent.click(screen.getByTestId('team-create-product-preset'));
+    expect(screen.getAllByTestId(/team-create-member-draft-/)).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'Confirm Create' })).toBeEnabled();
   });
 
   it('renders the single-column mobile layout instead of the desktop two-column one', () => {
@@ -463,6 +518,18 @@ function assistants(): Assistant[] {
       team_selectable: true,
     }),
   ];
+}
+
+function productAssistants(): Assistant[] {
+  return ['preset-aionui-assistant', 'foundry-prd', 'foundry-development'].map((id) =>
+    assistant({
+      id,
+      name: id,
+      source: 'builtin',
+      agent_id: 'agent-aionrs',
+      agent: { type: 'aionrs', source: 'internal' },
+    })
+  );
 }
 
 function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'source' | 'agent_id'>): Assistant {

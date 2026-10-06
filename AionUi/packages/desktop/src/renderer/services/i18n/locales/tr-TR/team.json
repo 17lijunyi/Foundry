@@ -73,7 +73,11 @@
     "selectedMembersTitleWithCount": "Selected members {{count}}",
     "leaderLegend": "= Leader",
     "membersHelper": "Choose team members and assign one Leader. The same assistant can be selected multiple times.",
-    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat.",
+    "productTeamName": "Ürün geliştirme ve yineleme",
+    "productTeamPreset": "Ürün yineleme ekibini kullan",
+    "productTeamHint": "Ürün Yöneticisi liderlik eder; PRD ve Geliştirme asistanları yayımdan sonra da aynı projede çalışır.",
+    "productTeamUnavailable": "Bu ekibi kullanmak için üç ürün asistanını etkinleştirin ve Agent yapılandırmalarını tamamlayın."
   },
   "removeAgent": {
     "confirmTitle": "Takım Üyesini Kaldır",

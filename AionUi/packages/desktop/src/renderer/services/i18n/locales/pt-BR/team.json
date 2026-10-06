@@ -73,7 +73,11 @@
     "selectedMembersTitleWithCount": "Selected members {{count}}",
     "leaderLegend": "= Leader",
     "membersHelper": "Choose team members and assign one Leader. The same assistant can be selected multiple times.",
-    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat.",
+    "productTeamName": "Desenvolvimento e evolução do produto",
+    "productTeamPreset": "Usar equipe de evolução do produto",
+    "productTeamHint": "O Gerente de Produto lidera; os assistentes de PRD e Desenvolvimento continuam no mesmo projeto após o lançamento.",
+    "productTeamUnavailable": "Ative os três assistentes de produto e configure seus Agents para usar esta equipe."
   },
   "removeAgent": {
     "confirmTitle": "Remover Membro da Equipe",
