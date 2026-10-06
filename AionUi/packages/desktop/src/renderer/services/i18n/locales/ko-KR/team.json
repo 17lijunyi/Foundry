@@ -73,7 +73,11 @@
     "selectedMembersTitleWithCount": "Selected members {{count}}",
     "leaderLegend": "= Leader",
     "membersHelper": "Choose team members and assign one Leader. The same assistant can be selected multiple times.",
-    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat.",
+    "productTeamName": "제품 개발 및 반복 개선",
+    "productTeamPreset": "제품 개선 팀 사용",
+    "productTeamHint": "제품 매니저가 이끌고 PRD 및 개발 어시스턴트가 출시 후에도 같은 프로젝트에서 개선을 이어갑니다.",
+    "productTeamUnavailable": "제품 어시스턴트 세 개를 활성화하고 Agent를 설정하면 이 팀을 사용할 수 있습니다."
   },
   "removeAgent": {
     "confirmTitle": "팀 멤버 제거",

@@ -73,7 +73,11 @@
     "selectedMembersTitleWithCount": "已选成员 {{count}}",
     "leaderLegend": "= Leader",
     "membersHelper": "选择团队成员并指定一个 Leader。同一个助手可被多次选择。",
-    "memberHint": "没有合适的助手当队员？创建后可让 Leader 在对话中创建临时队员。"
+    "memberHint": "没有合适的助手当队员？创建后可让 Leader 在对话中创建临时队员。",
+    "productTeamName": "产品开发与迭代",
+    "productTeamPreset": "使用产品迭代团队",
+    "productTeamHint": "产品经理统筹，PRD 与开发助手协作；上线后继续在同一项目中迭代。",
+    "productTeamUnavailable": "请启用三个产品助手并配置其 Agent，再使用此团队。"
   },
   "removeAgent": {
     "confirmTitle": "移除团队成员",

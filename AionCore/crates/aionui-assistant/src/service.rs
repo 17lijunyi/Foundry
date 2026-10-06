@@ -1241,16 +1241,32 @@ impl AssistantService {
                     .ok_or_else(|| AssistantError::NotFound(format!("assistant '{id}' not found")))?;
 
                 let existing = self.override_repo.get_for_user(user_id, id).await?;
-                let enabled = existing.as_ref().is_none_or(|o| o.enabled);
-                let sort_order = existing.as_ref().map(|o| o.sort_order).unwrap_or(0);
-                let last_used_at = existing.as_ref().and_then(|o| o.last_used_at);
-                let requested_agent_id = req.agent_id.as_deref().map(|agent_id| agent_id.trim().to_string());
-                let current_agent_id = self
+                let existing_state = self
                     .state_repo
                     .get_for_user(user_id, &definition.id)
                     .await
-                    .map_err(|e| AssistantError::Internal(format!("get assistant overlay: {e}")))?
-                    .and_then(|row| row.agent_id_override)
+                    .map_err(|e| AssistantError::Internal(format!("get assistant overlay: {e}")))?;
+                let enabled = existing_state
+                    .as_ref()
+                    .map(|state| state.enabled)
+                    .or_else(|| existing.as_ref().map(|state| state.enabled))
+                    .unwrap_or_else(|| {
+                        self.builtin_listing_default(&definition)
+                            .is_none_or(|(_, enabled)| enabled)
+                    });
+                let sort_order = existing_state
+                    .as_ref()
+                    .map(|state| state.sort_order)
+                    .or_else(|| existing.as_ref().map(|state| state.sort_order))
+                    .unwrap_or(0);
+                let last_used_at = existing_state
+                    .as_ref()
+                    .and_then(|state| state.last_used_at)
+                    .or_else(|| existing.as_ref().and_then(|state| state.last_used_at));
+                let requested_agent_id = req.agent_id.as_deref().map(|agent_id| agent_id.trim().to_string());
+                let current_agent_id = existing_state
+                    .as_ref()
+                    .and_then(|row| row.agent_id_override.clone())
                     .unwrap_or_else(|| definition.agent_id.clone());
                 let reset_model_and_permission = requested_agent_id
                     .as_deref()
@@ -1877,7 +1893,17 @@ impl AssistantService {
         locale: Option<&str>,
     ) -> Result<String, AssistantError> {
         match self.classify_source_for_user(user_id, id).await {
-            AssistantSource::Builtin => Ok(self.read_builtin_rule_with_fallback(id, locale)),
+            AssistantSource::Builtin => {
+                // Upgraded installations can retain a legacy assistant_id such
+                // as `preset-aionui-assistant`. Assets belong to the manifest's
+                // source_ref, not that persisted public identity.
+                let definition = self.definition_repo.get_by_assistant_id_for_user(user_id, id).await?;
+                let source_id = definition
+                    .as_ref()
+                    .and_then(|definition| definition.source_ref.as_deref())
+                    .unwrap_or(id);
+                Ok(self.read_builtin_rule_with_fallback(source_id, locale))
+            }
             AssistantSource::Generated | AssistantSource::User => {
                 Ok(self.read_user_rule_with_fallback(user_id, id, locale))
             }
@@ -2546,7 +2572,7 @@ impl AssistantService {
     ///
     /// Official assistants cannot be reordered by users, so their `sort_order`
     /// is always the manifest value (never an overlay). Their default `enabled`
-    /// (butler on, others off) applies only when the user has no overlay.
+    /// applies only when the user has no overlay.
     /// Returns `(sort_order, default_enabled)`; `None` for non-builtins.
     fn builtin_listing_default(&self, definition: &AssistantDefinitionRow) -> Option<(i32, bool)> {
         if definition.source != "builtin" {
@@ -2588,7 +2614,7 @@ impl AssistantService {
             description_i18n: decode_str_map(Some(definition.description_i18n.as_str()))?,
             avatar: self.avatar_display_value(user_id, definition),
             // For builtins: enabled = overlay if the user has one, else the
-            // manifest default (butler on, others off). sort_order = always the
+            // manifest default. sort_order = always the
             // manifest value (users can't reorder official assistants).
             enabled: match state {
                 Some(row) => row.enabled,
@@ -4234,6 +4260,108 @@ mod tests {
         let butler_idx = list.iter().position(|a| a.id == "aionui-assistant").unwrap();
         let writer_idx = list.iter().position(|a| a.id == "builtin-writer").unwrap();
         assert!(butler_idx < writer_idx, "butler (0) sorts before writer (50)");
+    }
+
+    #[tokio::test]
+    async fn shipped_product_roles_default_on_for_new_users() {
+        let mut fx = fixture().await;
+        fx.service.builtin = Arc::new(BuiltinAssistantRegistry::load_embedded());
+        fx.service.bootstrap_assistant_storage().await.unwrap();
+        let user_id = create_test_user(&fx._db, "new-product-user").await;
+        let list = fx.service.list_for_user(&user_id).await.unwrap();
+        let enabled_builtins: HashSet<_> = list
+            .iter()
+            .filter(|assistant| assistant.source == AssistantSource::Builtin && assistant.enabled)
+            .map(|assistant| assistant.id.as_str())
+            .collect();
+        assert_eq!(
+            enabled_builtins,
+            HashSet::from(["aionui-assistant", "foundry-prd", "foundry-development"])
+        );
+        assert!(
+            !list
+                .iter()
+                .find(|assistant| assistant.id == "word-creator")
+                .unwrap()
+                .enabled
+        );
+        assert!(
+            fx.service
+                .read_rule_for_user(&user_id, "foundry-prd", Some("zh-CN"))
+                .await
+                .unwrap()
+                .contains("PRD-v")
+        );
+    }
+
+    #[tokio::test]
+    async fn product_role_upgrade_enables_new_roles_without_resetting_existing_preferences() {
+        let mut manager = mk_builtin("aionui-assistant", "Manager");
+        manager.sort_order = 0;
+        let mut fx = fixture_with_builtins(vec![manager]).await;
+        fx.service
+            .set_state(
+                "aionui-assistant",
+                SetAssistantStateRequest {
+                    enabled: Some(false),
+                    last_used_at: Some(1234),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+        fx.service
+            .update(
+                "aionui-assistant",
+                UpdateAssistantRequest {
+                    agent_id: Some("2d23ff1c".into()),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+        fx.service
+            .create(CreateAssistantRequest {
+                id: Some("existing-custom".into()),
+                name: "My saved assistant".into(),
+                ..req_default()
+            })
+            .await
+            .unwrap();
+
+        // Simulate the existing database being opened by the new embedded catalog.
+        fx.service.builtin = Arc::new(BuiltinAssistantRegistry::load_embedded());
+        fx.service.bootstrap_assistant_storage().await.unwrap();
+        let list = fx.service.list().await.unwrap();
+        for id in ["foundry-prd", "foundry-development"] {
+            let role = list
+                .iter()
+                .find(|assistant| assistant.id == id)
+                .expect("new default role appears");
+            assert!(role.enabled, "new roles use manifest defaults on an existing database");
+        }
+        let manager = list
+            .iter()
+            .find(|assistant| assistant.id == "aionui-assistant")
+            .unwrap();
+        assert!(!manager.enabled, "an explicit user preference is never overwritten");
+        assert_eq!(manager.agent_id, "2d23ff1c", "the chosen execution engine is preserved");
+        assert_eq!(manager.last_used_at, Some(1234));
+        assert!(list.iter().any(|assistant| assistant.id == "existing-custom"));
+
+        fx.service
+            .set_state(
+                "foundry-prd",
+                SetAssistantStateRequest {
+                    enabled: Some(false),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+        fx.service.bootstrap_assistant_storage().await.unwrap();
+        assert!(!fx.service.get("foundry-prd").await.unwrap().enabled);
+        assert!(fx.service.get("foundry-development").await.unwrap().enabled);
     }
 
     #[tokio::test]
@@ -6756,6 +6884,44 @@ mod tests {
     async fn classify_falls_back_to_user() {
         let fx = fixture().await;
         assert_eq!(fx.service.classify_source("ghost").await, AssistantSource::User);
+    }
+
+    #[tokio::test]
+    async fn legacy_builtin_identity_reads_manifest_rule_with_locale_fallback() {
+        let mut manager = mk_builtin("aionui-assistant", "Manager");
+        manager.rule_file = Some("rules/aionui-assistant.{locale}.md".into());
+        let fx = fixture_with_builtins(vec![manager]).await;
+        let rules_dir = fx._tmp.path().join("assets/rules");
+        std::fs::create_dir_all(&rules_dir).unwrap();
+        std::fs::write(rules_dir.join("aionui-assistant.en-US.md"), "manager team coordination").unwrap();
+        let mut definition = fx
+            .definition_repo
+            .get_by_assistant_id("aionui-assistant")
+            .await
+            .unwrap()
+            .unwrap();
+        definition.assistant_id = "preset-aionui-assistant".into();
+        fx.definition_repo
+            .upsert_global(&upsert_params_from_definition(&definition))
+            .await
+            .unwrap();
+        fx.service.bootstrap_assistant_storage().await.unwrap();
+
+        assert_eq!(
+            fx.service
+                .read_rule("preset-aionui-assistant", Some("zh-CN"))
+                .await
+                .unwrap(),
+            "manager team coordination"
+        );
+        let list = fx.service.list().await.unwrap();
+        assert_eq!(
+            list.iter()
+                .filter(|assistant| assistant.source == AssistantSource::Builtin)
+                .count(),
+            1
+        );
+        assert!(list.iter().any(|assistant| assistant.id == "preset-aionui-assistant"));
     }
 
     #[tokio::test]

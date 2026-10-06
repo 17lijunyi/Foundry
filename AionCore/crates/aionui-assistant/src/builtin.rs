@@ -64,8 +64,8 @@ pub struct BuiltinAssistant {
     #[serde(default)]
     pub sort_order: i32,
     /// Whether this official assistant is enabled by default when a user has
-    /// no overlay for it. Only the butler ships enabled; others default off so
-    /// they don't crowd the user's selection lists. Defaults to false.
+    /// no overlay for it. The product manager, PRD and development assistants
+    /// ship enabled; other presets default off. Defaults to false.
     #[serde(default)]
     pub default_enabled: bool,
 }
@@ -301,6 +301,38 @@ mod tests {
     }
 
     #[test]
+    fn embedded_product_team_has_three_default_roles_with_rules_and_avatars() {
+        let reg = BuiltinAssistantRegistry::load_embedded();
+        let mut enabled: Vec<_> = reg.all().filter(|assistant| assistant.default_enabled).collect();
+        enabled.sort_by_key(|assistant| assistant.sort_order);
+        assert_eq!(
+            enabled
+                .iter()
+                .map(|assistant| assistant.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["aionui-assistant", "foundry-prd", "foundry-development"]
+        );
+        for assistant in enabled {
+            assert_eq!(assistant.agent_ref, "aionrs");
+            assert!(
+                reg.avatar_asset(&assistant.id).is_some(),
+                "{} avatar must ship",
+                assistant.id
+            );
+            for locale in ["en-US", "zh-CN"] {
+                let rules = reg
+                    .rule_bytes(&assistant.id, locale)
+                    .expect("default product role must ship a real system prompt");
+                assert!(
+                    rules.len() > 1000,
+                    "{} needs executable workflow guidance",
+                    assistant.id
+                );
+            }
+        }
+    }
+
+    #[test]
     fn load_embedded_rule_bytes_available_for_shipped_preset() {
         let reg = BuiltinAssistantRegistry::load_embedded();
         let bytes = reg
@@ -475,7 +507,7 @@ mod tests {
     #[test]
     fn every_official_assistant_ships_a_square_transparent_pixel_portrait() {
         let reg = BuiltinAssistantRegistry::load_embedded();
-        assert_eq!(reg.all().count(), 21);
+        assert_eq!(reg.all().count(), 23);
         for assistant in reg.all() {
             let asset = reg
                 .avatar_asset(&assistant.id)

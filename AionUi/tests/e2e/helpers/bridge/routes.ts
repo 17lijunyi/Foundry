@@ -18,6 +18,12 @@ export type HttpRoute = {
  * to the legacy IPC bridge.
  */
 export const HTTP_ROUTES: Record<string, HttpRoute> = {
+  'assistants.list': { method: 'GET', path: '/api/assistants' },
+  'assistants.get': {
+    method: 'GET',
+    path: (p) =>
+      `/api/assistants/${encodeURIComponent(String(p.id))}${p.locale ? `?locale=${encodeURIComponent(String(p.locale))}` : ''}`,
+  },
   'cron.list-jobs': {
     method: 'GET',
     path: '/api/cron/jobs',

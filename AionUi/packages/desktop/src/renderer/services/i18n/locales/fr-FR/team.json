@@ -73,7 +73,11 @@
     "selectedMembersTitleWithCount": "Membres sélectionnés {{count}}",
     "leaderLegend": "= Chef",
     "membersHelper": "Choisissez les membres et désignez un chef. Le même assistant peut être sélectionné plusieurs fois.",
-    "memberHint": "Aucun assistant adapté comme membre ? Après la création, laissez le chef créer des membres temporaires dans la discussion."
+    "memberHint": "Aucun assistant adapté comme membre ? Après la création, laissez le chef créer des membres temporaires dans la discussion.",
+    "productTeamName": "Développement et évolution du produit",
+    "productTeamPreset": "Utiliser l’équipe d’évolution du produit",
+    "productTeamHint": "Le Responsable Produit dirige ; les assistants PRD et Développement poursuivent le travail dans le même projet après sa publication.",
+    "productTeamUnavailable": "Activez les trois assistants produit et configurez leurs Agents pour utiliser cette équipe."
   },
   "removeAgent": {
     "confirmTitle": "Retirer un membre de l'équipe",

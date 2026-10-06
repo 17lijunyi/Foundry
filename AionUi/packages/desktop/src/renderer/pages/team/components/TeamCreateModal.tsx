@@ -12,7 +12,7 @@ import AionModal from '@renderer/components/base/AionModal';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import { useTeamAssistantOptions } from '../hooks/useTeamAssistantOptions';
-import type { TeamAssistantOption } from './assistantSelectUtils';
+import { resolveProductTeamAssistants, type TeamAssistantOption } from './assistantSelectUtils';
 import { resolveDefaultTeamAgentModel } from './teamCreateModelResolver';
 import TeamAssistantPicker from './memberPicker/TeamAssistantPicker';
 import TeamAssistantPickerDropdown from './memberPicker/TeamAssistantPickerDropdown';
@@ -38,6 +38,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { assistants: allAssistants } = useTeamAssistantOptions(i18n?.language ?? 'en-US');
+  const productTeamAssistants = useMemo(() => resolveProductTeamAssistants(allAssistants), [allAssistants]);
   const [name, setName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<TeamMemberDraft[]>([]);
   const [leaderSelectionId, setLeaderSelectionId] = useState<string | undefined>(undefined);
@@ -68,6 +69,20 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     };
     setSelectedMembers((members) => [...members, draft]);
     setLeaderSelectionId((current) => current ?? draft.selectionId);
+  };
+
+  const handleUseProductTeam = () => {
+    if (!productTeamAssistants) return;
+    const members = productTeamAssistants.map((assistant) => ({
+      selectionId: `${assistant.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      assistant,
+    }));
+    setSelectedMembers(members);
+    setLeaderSelectionId(members[0].selectionId);
+    setName(
+      (current) => current || t('team.create.productTeamName', { defaultValue: 'Product development and iteration' })
+    );
+    setAssistantDropdownOpen(false);
   };
 
   const handleRemoveDraft = (selectionId: string) => {
@@ -159,6 +174,30 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     </>
   );
 
+  const productTeamPreset = (
+    <div className='mb-12px flex shrink-0 flex-col gap-6px'>
+      <Button
+        type='outline'
+        size='small'
+        disabled={!productTeamAssistants}
+        onClick={handleUseProductTeam}
+        data-testid='team-create-product-preset'
+      >
+        {t('team.create.productTeamPreset', { defaultValue: 'Use product iteration team' })}
+      </Button>
+      <span className='text-12px text-t-tertiary'>
+        {productTeamAssistants
+          ? t('team.create.productTeamHint', {
+              defaultValue:
+                'Product Manager leads; PRD and Development assistants share this project through every iteration.',
+            })
+          : t('team.create.productTeamUnavailable', {
+              defaultValue: 'Enable the three product assistants and configure their agents to use this team.',
+            })}
+      </span>
+    </div>
+  );
+
   // 团队名 + 工作空间：桌面端与窄屏端共用同一份字段（文案、testId、交互一致）。
   const teamFields = (
     <div className='grid grid-cols-[76px_minmax(0,1fr)] items-center gap-x-14px gap-y-10px'>
@@ -213,6 +252,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             defaultValue: `All assistants (${allAssistants.length})`,
           })}
         </div>
+        {productTeamPreset}
         {assistantPicker}
       </section>
 
@@ -257,6 +297,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   );
   const mobileBody = (
     <div data-testid='team-create-layout-mobile' className='flex min-h-0 flex-col gap-16px px-20px py-16px'>
+      {productTeamPreset}
       {/* 窄屏无固定高度的父级：给成员列表框一个固定 max-height（同桌面思路），成员变多时框内滚动，
           团队字段区始终留在下方可见。 */}
       <section className='flex min-h-0 flex-col' data-testid='team-create-details-pane'>

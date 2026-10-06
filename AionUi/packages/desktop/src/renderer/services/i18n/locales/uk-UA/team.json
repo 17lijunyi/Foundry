@@ -73,7 +73,11 @@
     "selectedMembersTitleWithCount": "Selected members {{count}}",
     "leaderLegend": "= Leader",
     "membersHelper": "Choose team members and assign one Leader. The same assistant can be selected multiple times.",
-    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat."
+    "memberHint": "No suitable assistant as a member? After creation, let the Leader create temporary team members in chat.",
+    "productTeamName": "Розробка та розвиток продукту",
+    "productTeamPreset": "Використати команду розвитку продукту",
+    "productTeamHint": "Менеджер продукту керує; помічники PRD і розробки продовжують роботу в одному проєкті після випуску.",
+    "productTeamUnavailable": "Увімкніть трьох помічників продукту та налаштуйте їх Agent, щоб використовувати цю команду."
   },
   "removeAgent": {
     "confirmTitle": "Видалити учасника команди",

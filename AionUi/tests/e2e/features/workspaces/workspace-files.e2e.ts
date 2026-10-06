@@ -41,7 +41,12 @@ test.describe('Workspace Files — UI panel', () => {
     // Mock native folder dialog → point at our seeded workspace so the team is
     // created with a user-specified workspace (not a temp one).
     await electronApp.evaluate(async ({ dialog }, target) => {
-      dialog.showOpenDialog = () => Promise.resolve({ canceled: false, filePaths: [target] });
+      const state = globalThis as unknown as { e2eWorkspaceDialogCalls: number };
+      state.e2eWorkspaceDialogCalls = 0;
+      dialog.showOpenDialog = () => {
+        state.e2eWorkspaceDialogCalls += 1;
+        return Promise.resolve({ canceled: false, filePaths: [target] });
+      };
     }, workspace);
 
     await cleanupTeamsByName(page, TEAM_NAME);
@@ -54,28 +59,33 @@ test.describe('Workspace Files — UI panel', () => {
     const modal = page.locator('.team-create-modal');
     await expect(modal).toBeVisible({ timeout: 10_000 });
 
-    const nameInput = modal.locator('input').first();
+    const nameInput = modal.locator('[data-testid="team-create-name-input"]');
     await nameInput.fill(TEAM_NAME);
 
-    const agentCard = modal.locator('[data-testid^="team-create-agent-card-"]').first();
-    if (!(await agentCard.isVisible().catch(() => false))) {
-      test.skip(true, 'No supported agents available');
-      return;
-    }
+    const agentCard = modal.locator('[data-testid^="team-create-agent-option-"]:not([aria-disabled="true"])').first();
+    await expect(agentCard).toBeVisible({ timeout: 5_000 });
     await agentCard.click();
 
     // Pick workspace via the mocked native dialog trigger
+    await page.evaluate(() => {
+      localStorage.setItem('aionui:recent-workspaces', JSON.stringify(['/previous/project']));
+    });
     const wsTrigger = modal.locator('[data-testid="team-create-workspace-trigger"]');
-    if (await wsTrigger.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await expect(wsTrigger).toBeVisible({ timeout: 3_000 });
+    const selectWorkspace = async (click: number) => {
       await wsTrigger.click();
-      const menu = page.locator('[data-testid="team-create-workspace-menu"]');
-      if (await menu.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        const chooseDifferent = menu
-          .locator('text=/Choose a different folder|选择其他文件夹/i')
-          .or(menu.locator('.cursor-pointer').last());
-        await chooseDifferent.first().click();
-      }
-    }
+      await expect
+        .poll(() =>
+          electronApp.evaluate(
+            () => (globalThis as unknown as { e2eWorkspaceDialogCalls: number }).e2eWorkspaceDialogCalls
+          )
+        )
+        .toBe(click);
+      await expect(wsTrigger).toContainText(path.basename(workspace));
+    };
+    await selectWorkspace(1);
+    await selectWorkspace(2);
+    await expect(page.locator('[data-testid="team-create-workspace-menu"]')).toHaveCount(0);
 
     const createConfirmBtn = modal.locator('.arco-btn-primary');
     await expect(createConfirmBtn).toBeEnabled({ timeout: 5_000 });
