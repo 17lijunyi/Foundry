@@ -5,6 +5,14 @@ import { MemoryRouter } from 'react-router-dom';
 import type { TChatConversation } from '@/common/config/storage';
 import type { TTeam } from '@/common/types/team/teamTypes';
 
+// Connection setup is tested separately; this suite only exercises cron wiring.
+vi.mock('@/renderer/hooks/agent/connection', () => {
+  const cancelPending = vi.fn();
+  return {
+    useAssistantConnection: () => ({ ensureReady: vi.fn(async () => true), cancelPending, dialog: null }),
+  };
+});
+
 const { getConversationOrNullMock, cronJobManagerMock, ensureSessionMock, teamEventHandlers, makeTeamEventChannel } =
   vi.hoisted(() => {
     const handlers: Record<string, Array<(event: unknown) => void>> = {};

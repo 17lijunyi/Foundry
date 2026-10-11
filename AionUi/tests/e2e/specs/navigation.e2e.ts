@@ -5,7 +5,15 @@
  * settings sub-pages without errors.
  */
 import { test, expect } from '../fixtures';
-import { goToGuid, goToSettings, ROUTES, expectUrlContains, takeScreenshot, type SettingsTab } from '../helpers';
+import {
+  goToGuid,
+  goToSettings,
+  navigateTo,
+  ROUTES,
+  expectUrlContains,
+  takeScreenshot,
+  type SettingsTab,
+} from '../helpers';
 
 // ── Guid Page ────────────────────────────────────────────────────────────────
 
@@ -40,31 +48,66 @@ test.describe('Guid Page', () => {
 // ── Settings Pages ───────────────────────────────────────────────────────────
 
 test.describe('Settings Pages', () => {
-  const tabs: { tab: SettingsTab; name: string }[] = [
-    { tab: 'gemini', name: 'Gemini Settings' },
-    { tab: 'model', name: 'Model Settings' },
-    { tab: 'agent', name: 'Agent/ACP Settings' },
-    { tab: 'tools', name: 'Tools/MCP Settings' },
-    { tab: 'display', name: 'Display Settings' },
-    { tab: 'webui', name: 'WebUI Settings' },
-    { tab: 'system', name: 'System Settings' },
-    { tab: 'about', name: 'About Page' },
+  const tabs: {
+    tab: SettingsTab;
+    target?: SettingsTab;
+    name: string;
+    content: { kind: 'heading' | 'text'; name: RegExp };
+  }[] = [
+    // Gemini no longer has a separate settings entry; agent configuration lives here.
+    {
+      tab: 'gemini',
+      target: 'agent',
+      name: 'Gemini configuration via Agent Settings',
+      content: { kind: 'heading', name: /^Agents$/ },
+    },
+    { tab: 'model', name: 'Model Settings', content: { kind: 'heading', name: /^(Model|模型)$/ } },
+    { tab: 'agent', name: 'Agent/ACP Settings', content: { kind: 'heading', name: /^Agents$/ } },
+    { tab: 'tools', name: 'Tools/MCP Settings', content: { kind: 'heading', name: /^(Tools|工具)$/ } },
+    { tab: 'display', name: 'Appearance Settings', content: { kind: 'text', name: /^(Theme|主题)$/ } },
+    { tab: 'webui', name: 'WebUI Settings', content: { kind: 'heading', name: /^WebUI$/ } },
+    { tab: 'system', name: 'System Settings', content: { kind: 'text', name: /^(Language|语言)$/ } },
+    { tab: 'about', name: 'About Page', content: { kind: 'heading', name: /^Foundry$/ } },
   ];
 
-  for (const { tab, name } of tabs) {
+  for (const { tab, target, name, content } of tabs) {
     test(`${name} loads`, async ({ page }) => {
-      await goToSettings(page, tab);
-      await expectUrlContains(page, tab);
-      const body = await page.locator('body').textContent();
-      expect(body!.length).toBeGreaterThan(10);
+      const destination = target ?? tab;
+      await goToSettings(page, destination);
+      await expect(page).toHaveURL((url) => url.hash === ROUTES.settings[destination]);
+      const settingsContent = page.locator('.settings-page-content');
+      const marker =
+        content.kind === 'heading'
+          ? settingsContent.getByRole('heading', { name: content.name })
+          : settingsContent.getByText(content.name);
+      await expect(marker).toBeVisible();
     });
   }
 
   test('screenshot: settings pages', async ({ page }) => {
     test.skip(!process.env.E2E_SCREENSHOTS, 'screenshots disabled');
-    for (const { tab } of tabs) {
-      await goToSettings(page, tab);
+    for (const { tab, target } of tabs) {
+      await goToSettings(page, target ?? tab);
       await takeScreenshot(page, `settings-${tab}`);
+    }
+    await navigateTo(page, '#/assistants');
+    await expect(page.getByRole('heading', { name: /^(Assistants|助手)$/ })).toBeVisible();
+    const wasDark = await page.locator('body').getAttribute('arco-theme');
+    const rail = page.locator('[data-glass-region="rail"]');
+    if (wasDark !== 'dark') {
+      await rail.getByRole('button', { name: /Dark|深色/i }).click();
+      await expect(page.locator('body')).toHaveAttribute('arco-theme', 'dark');
+    }
+    try {
+      // Theme attributes change before the existing color transitions finish.
+      // Await their actual completion so screenshots capture the settled palette.
+      await page.evaluate(async () => {
+        const transitions = document.getAnimations().filter((animation) => animation instanceof CSSTransition);
+        await Promise.all(transitions.map((animation) => animation.finished.catch(() => undefined)));
+      });
+      await takeScreenshot(page, 'foundry-dark-assistants');
+    } finally {
+      if (wasDark !== 'dark') await rail.getByRole('button', { name: /Light|浅色/i }).click();
     }
   });
 });

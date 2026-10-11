@@ -29,6 +29,7 @@ import type { AssistantEditorViewModel, AssistantListItem } from './types';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAssistantConnection } from '@/renderer/hooks/agent/connection';
 
 type AssistantNavigationState = {
   openAssistantId?: string;
@@ -41,6 +42,7 @@ const AssistantSettings: React.FC = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const connection = useAssistantConnection();
   const navigationState = (location.state as AssistantNavigationState | null) ?? null;
 
   // Keep the current management surface when returning from the editor. The
@@ -49,10 +51,12 @@ const AssistantSettings: React.FC = () => {
 
   // "Chat" on an assistant → open a new conversation with it preselected.
   const handleStartChat = useCallback(
-    (assistant: AssistantListItem) => {
-      navigate('/guid', { state: { selectedAssistantId: assistant.id } });
+    async (assistant: AssistantListItem) => {
+      if (await connection.ensureReady([{ id: assistant.id }], { configureApi: true })) {
+        navigate('/guid', { state: { selectedAssistantId: assistant.id } });
+      }
     },
-    [navigate]
+    [navigate, connection.ensureReady]
   );
 
   // Compose hooks
@@ -220,6 +224,7 @@ const AssistantSettings: React.FC = () => {
     <div className='h-full w-full overflow-hidden bg-bg-0'>
       <div className='flex flex-col h-full w-full'>
         {messageContext}
+        {connection.dialog}
         <div className='flex-1 min-h-0'>
           {showEditor ? (
             <AssistantEditorPage

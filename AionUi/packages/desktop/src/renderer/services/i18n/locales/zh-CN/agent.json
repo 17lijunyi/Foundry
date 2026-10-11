@@ -1,4 +1,17 @@
 {
+  "connection": {
+    "title": "先连接助手的模型",
+    "noApiModel": "使用这个助手前，请先配置服务商、API Key 和模型，也可以使用已保存的连接。",
+    "modelUnavailable": "该助手选择的模型已被移除或停用。请启用该模型，或在助手的默认配置中选择可用模型。",
+    "agentUnavailable": "该助手的本机 Agent 尚未安装或连接不可用。请先在 Agent 设置中检查安装和登录配置。",
+    "checkFailed": "暂时无法读取连接配置，请稍后重新检查。你的输入和已选成员会保留。",
+    "configureApi": "配置模型 API",
+    "manageAgent": "检查本机 Agent",
+    "sharedHint": "使用本机已登录的 CLI 时，无需重复填写 API Key；请在助手的「引擎 → Agent」中选择对应 CLI。已保存 API 配置不代表已验证网络或额度。",
+    "resumeHint": "配置完成后关闭设置，再点击开始或创建团队；当前输入和成员会保留。",
+    "cliHint": "该助手使用本机 CLI，请确保已在该 CLI 中完成登录；无需在 Foundry 重复配置 API Key。",
+    "setupTitle": "配置模型 API · {{names}}"
+  },
   "health": {
     "detectedError": "检测到当前 Agent ({{agent}}) 响应异常",
     "autoSwitching": "。系统将自动尝试切换线路。",

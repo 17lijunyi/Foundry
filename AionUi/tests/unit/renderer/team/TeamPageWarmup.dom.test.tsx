@@ -71,6 +71,15 @@ vi.mock('@arco-design/web-react', async () => {
 vi.mock('@/renderer/hooks/context/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user-1' } }) }));
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({ useLayoutContext: () => layoutState }));
 
+// API setup is covered by the connection and member-picker tests. Keep this
+// warmup test independent of the settings dialog's application-wide imports.
+vi.mock('@/renderer/hooks/agent/connection', () => {
+  const cancelPending = vi.fn();
+  return {
+    useAssistantConnection: () => ({ ensureReady: vi.fn(async () => true), cancelPending, dialog: null }),
+  };
+});
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     team: {

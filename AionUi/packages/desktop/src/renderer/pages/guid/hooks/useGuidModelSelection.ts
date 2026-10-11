@@ -7,7 +7,7 @@
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { useGoogleAuthModels } from '@/renderer/hooks/agent/useGoogleAuthModels';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
-import { hasAvailableModels } from '../utils/modelUtils';
+import { getSelectableProviderModels } from '@/renderer/hooks/agent/connection/readiness';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /**
@@ -52,8 +52,13 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
   const { data: modelConfig } = useProvidersQuery();
 
   const modelList = useMemo(() => {
-    const allProviders: IProvider[] = (modelConfig || []).filter((platform) => !!platform.models.length);
-    return allProviders.filter(hasAvailableModels);
+    return (modelConfig || [])
+      .filter((provider) => provider.enabled !== false)
+      .map((provider) => ({
+        ...provider,
+        models: getSelectableProviderModels([provider]).map((model) => model.use_model),
+      }))
+      .filter((provider) => provider.models.length > 0);
   }, [modelConfig]);
 
   const formatGeminiModelLabel = useCallback((_provider: { platform?: string } | undefined, modelName?: string) => {
@@ -75,6 +80,8 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
   const resetCurrentModel = useCallback(
     async (options?: { persistPreference?: boolean }) => {
       if (!modelList || modelList.length === 0) {
+        selectedModelKeyRef.current = null;
+        _setCurrentModel(undefined);
         return;
       }
 
@@ -100,6 +107,8 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
   useEffect(() => {
     const setDefaultModel = async () => {
       if (!modelList || modelList.length === 0) {
+        selectedModelKeyRef.current = null;
+        _setCurrentModel(undefined);
         return;
       }
       const currentKey = selectedModelKeyRef.current || buildModelKey(current_model?.id, current_model?.use_model);
@@ -107,6 +116,12 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
         if (!selectedModelKeyRef.current && currentKey) {
           selectedModelKeyRef.current = currentKey;
         }
+        // Keep the selected pair, but use the current credentials and model settings.
+        const provider = modelList.find((item) =>
+          item.models.some((model) => buildModelKey(item.id, model) === currentKey)
+        );
+        const model = provider?.models.find((name) => buildModelKey(provider.id, name) === currentKey);
+        if (provider && model) _setCurrentModel({ ...provider, use_model: model });
         return;
       }
       await resetCurrentModel();

@@ -6,9 +6,9 @@
 
 import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ConfigProvider } from '@arco-design/web-react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import AssistantSettings from '@/renderer/pages/settings/AssistantSettings';
 import AssistantAvatar from '@/renderer/pages/settings/AssistantSettings/AssistantAvatar';
 import EnabledAssistantsList from '@/renderer/pages/settings/AssistantSettings/home/EnabledAssistantsList';
@@ -16,6 +16,14 @@ import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSetti
 
 const useAssistantListMock = vi.fn();
 const useAssistantEditorMock = vi.fn();
+const ensureReadyMock = vi.fn();
+
+vi.mock('@/renderer/hooks/agent/connection', () => ({
+  useAssistantConnection: () => ({
+    ensureReady: (...args: unknown[]) => ensureReadyMock(...args),
+    dialog: null,
+  }),
+}));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -79,6 +87,8 @@ vi.mock('@/renderer/pages/settings/AssistantSettings/assistantUtils', async () =
 
 describe('AssistantSettings', () => {
   beforeEach(() => {
+    ensureReadyMock.mockReset();
+    ensureReadyMock.mockResolvedValue(true);
     useAssistantListMock.mockReturnValue({
       assistants: [],
       activeAssistantId: 'assistant-1',
@@ -191,6 +201,38 @@ describe('AssistantSettings', () => {
 
     expect(screen.getByTestId('assistant-editor-page')).toBeInTheDocument();
     expect(screen.queryByTestId('assistant-list-panel')).not.toBeInTheDocument();
+  });
+
+  it('keeps the assistant list open when quick chat needs connection setup', async () => {
+    ensureReadyMock.mockResolvedValue(false);
+    renderChatEntry();
+
+    fireEvent.click(screen.getByTestId('btn-chat-api-assistant'));
+    await waitFor(() =>
+      expect(ensureReadyMock).toHaveBeenCalledWith([{ id: 'api-assistant' }], { configureApi: true })
+    );
+    await act(async () => {});
+
+    expect(screen.getByTestId('assistant-home-shell')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-destination')).not.toBeInTheDocument();
+  });
+
+  it('waits for connection readiness before navigating with the selected assistant', async () => {
+    let resolveReadiness: ((ready: boolean) => void) | undefined;
+    ensureReadyMock.mockImplementation(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveReadiness = resolve;
+        })
+    );
+    renderChatEntry();
+
+    fireEvent.click(screen.getByTestId('btn-chat-api-assistant'));
+    expect(screen.queryByTestId('chat-destination')).not.toBeInTheDocument();
+    await act(async () => resolveReadiness?.(true));
+
+    expect(await screen.findByTestId('chat-destination')).toHaveAttribute('data-assistant-id', 'api-assistant');
+    expect(ensureReadyMock).toHaveBeenCalledWith([{ id: 'api-assistant' }], { configureApi: true });
   });
 
   it('renders enabled assistants in one preferred cross-source list', () => {
@@ -373,3 +415,36 @@ describe('AssistantSettings', () => {
     vi.unstubAllGlobals();
   });
 });
+
+function ChatDestination() {
+  const location = useLocation();
+  const state = location.state as { selectedAssistantId?: string } | null;
+  return <div data-testid='chat-destination' data-assistant-id={state?.selectedAssistantId} />;
+}
+
+function renderChatEntry() {
+  const assistant = {
+    id: 'api-assistant',
+    name: 'API Assistant',
+    name_i18n: {},
+    description_i18n: {},
+    source: 'builtin',
+    enabled: true,
+    sort_order: 1,
+    agent: { type: 'aionrs', source: 'internal' },
+    agent_status: 'online',
+    models: [],
+  } as AssistantListItem;
+  useAssistantListMock.mockReturnValue({ ...useAssistantListMock(), assistants: [assistant] });
+  useAssistantEditorMock.mockReturnValue({ ...useAssistantEditorMock(), editVisible: false });
+  return render(
+    <ConfigProvider>
+      <MemoryRouter>
+        <Routes>
+          <Route path='/' element={<AssistantSettings />} />
+          <Route path='/guid' element={<ChatDestination />} />
+        </Routes>
+      </MemoryRouter>
+    </ConfigProvider>
+  );
+}

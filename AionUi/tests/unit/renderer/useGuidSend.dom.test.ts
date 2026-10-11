@@ -92,6 +92,30 @@ describe('useGuidSend', () => {
     expect(deps.navigate).not.toHaveBeenCalled();
   });
 
+  it('blocks creation and retains text, attachments and workspace when connection setup is required', async () => {
+    const deps = createDeps();
+    deps.files = [{ kind: 'local', path: '/project/requirements.md' }];
+    deps.dir = '/project';
+    deps.ensureConnection = vi.fn().mockResolvedValue(false);
+    const { result } = renderHook(() => useGuidSend(deps));
+    await act(async () => result.current.sendMessageHandler());
+    expect(createConversationInvokeMock).not.toHaveBeenCalled();
+    expect(
+      [deps.setInput, deps.setFiles, deps.setDir].every((setter) => vi.mocked(setter).mock.calls.length === 0)
+    ).toBe(true);
+    expect(deps.navigate).not.toHaveBeenCalled();
+  });
+
+  it('runs connection preflight for empty-input start chat and allows a configured assistant', async () => {
+    const deps = createDeps();
+    deps.input = '';
+    deps.ensureConnection = vi.fn().mockResolvedValue(true);
+    const { result } = renderHook(() => useGuidSend(deps));
+    await act(async () => result.current.handleSend());
+    expect(deps.ensureConnection).toHaveBeenCalledTimes(1);
+    expect(createConversationInvokeMock).toHaveBeenCalledTimes(1);
+  });
+
   it('preserves the draft when conversation creation returns no ID', async () => {
     const deps = createDeps();
     createConversationInvokeMock.mockResolvedValue(null);

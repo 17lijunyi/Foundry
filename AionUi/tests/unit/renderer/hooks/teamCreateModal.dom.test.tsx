@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
@@ -12,6 +12,9 @@ import type { Assistant } from '@/common/types/agent/assistantTypes';
 const createTeamInvokeMock = vi.fn();
 const resolveDefaultTeamAgentModelMock = vi.fn();
 const messageErrorMock = vi.fn();
+const ensureReadyMock = vi.fn();
+const cancelPendingMock = vi.fn();
+let connectionSettingsVisible = false;
 let suppliedAssistants: Assistant[] | undefined;
 
 Object.defineProperty(window, 'matchMedia', {
@@ -37,6 +40,15 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('@renderer/hooks/context/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'user-1' } }),
+}));
+
+vi.mock('@renderer/hooks/agent/connection', () => ({
+  useAssistantConnection: () => ({
+    ensureReady: (...args: unknown[]) => ensureReadyMock(...args),
+    dialog: <div data-testid='assistant-connection-dialog' />,
+    settingsVisible: connectionSettingsVisible,
+    cancelPending: cancelPendingMock,
+  }),
 }));
 
 vi.mock('@renderer/pages/conversation/hooks/useConversationAssistants', () => ({
@@ -128,6 +140,17 @@ const renderMobile = (ui: React.ReactElement) =>
     </LayoutContext.Provider>
   );
 
+async function selectAssistant(id: string) {
+  const before = screen.queryAllByTestId(/team-create-member-draft-/).length;
+  fireEvent.click(screen.getByTestId(`team-create-agent-option-${id}`));
+  await waitFor(() => expect(screen.queryAllByTestId(/team-create-member-draft-/)).toHaveLength(before + 1));
+}
+
+async function selectProductPreset() {
+  fireEvent.click(screen.getByTestId('team-create-product-preset'));
+  await waitFor(() => expect(screen.queryAllByTestId(/team-create-member-draft-/)).toHaveLength(3));
+}
+
 describe('TeamCreateModal', () => {
   beforeEach(() => {
     suppliedAssistants = undefined;
@@ -136,6 +159,240 @@ describe('TeamCreateModal', () => {
     resolveDefaultTeamAgentModelMock.mockReset();
     resolveDefaultTeamAgentModelMock.mockResolvedValue(undefined);
     messageErrorMock.mockReset();
+    ensureReadyMock.mockReset();
+    ensureReadyMock.mockResolvedValue(true);
+    connectionSettingsVisible = false;
+    cancelPendingMock.mockReset();
+  });
+
+  it('does not add an assistant or assign a leader when connection setup is cancelled', async () => {
+    ensureReadyMock.mockResolvedValue(false);
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+    fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'Blocked Team' } });
+    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    await waitFor(() => expect(screen.getByTestId('team-create-agent-option-bare-aionrs')).toBeEnabled());
+    expect(screen.getByText('Selected members 0')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Current Leader' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirm Create' })).toBeDisabled();
+    expect(resolveDefaultTeamAgentModelMock).not.toHaveBeenCalled();
+    expect(createTeamInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps a pending selection out of the member list and ignores repeated clicks until it succeeds', async () => {
+    let finish: (ready: boolean) => void = vi.fn();
+    ensureReadyMock.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      })
+    );
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+    const option = screen.getByTestId('team-create-agent-option-bare-aionrs');
+    fireEvent.click(option);
+    fireEvent.click(option);
+    expect(screen.getByText('Selected members 0')).toBeInTheDocument();
+    expect(ensureReadyMock).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      finish(true);
+    });
+    expect(screen.getByText('Selected members 1')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Current Leader' })).toHaveLength(1);
+  });
+
+  it('keeps existing members, leader, name and workspace when a product preset is cancelled', async () => {
+    suppliedAssistants = [...assistants(), ...productAssistants()];
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+    await selectAssistant('remote-runner');
+    fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'Existing draft' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Choose test folder' }));
+    ensureReadyMock.mockResolvedValueOnce(false);
+    fireEvent.click(screen.getByTestId('team-create-product-preset'));
+    await waitFor(() => expect(screen.getByTestId('team-create-product-preset')).toBeEnabled());
+    expect(screen.getByText('Selected members 1')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Current Leader' })).toHaveLength(1);
+    expect(screen.getByTestId('team-create-name-input')).toHaveValue('Existing draft');
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
+    await waitFor(() =>
+      expect(createTeamInvokeMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Existing draft',
+          workspace: '/projects/product',
+          agents: [expect.objectContaining({ assistant_id: 'remote-runner', role: 'leader' })],
+        })
+      )
+    );
+  });
+
+  it('does not add a late selection after the team dialog has closed', async () => {
+    let finish: (ready: boolean) => void = vi.fn();
+    ensureReadyMock.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      })
+    );
+    const onClose = vi.fn();
+    const onCreated = vi.fn();
+    const { rerender } = render(<TeamCreateModal visible onClose={onClose} onCreated={onCreated} />);
+    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    rerender(<TeamCreateModal visible={false} onClose={onClose} onCreated={onCreated} />);
+    await act(async () => {
+      finish(true);
+    });
+    rerender(<TeamCreateModal visible onClose={onClose} onCreated={onCreated} />);
+    expect(screen.getByText('Selected members 0')).toBeInTheDocument();
+    expect(cancelPendingMock).toHaveBeenCalled();
+    expect(createTeamInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('does not submit after the team dialog closes during model resolution', async () => {
+    let finish: (model: string) => void = vi.fn();
+    resolveDefaultTeamAgentModelMock.mockReturnValueOnce(
+      new Promise<string>((resolve) => {
+        finish = resolve;
+      })
+    );
+    const onCreated = vi.fn();
+    const onClose = vi.fn();
+    const { rerender } = render(<TeamCreateModal visible onClose={onClose} onCreated={onCreated} />);
+    await selectAssistant('bare-aionrs');
+    fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'Cancelled Team' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
+    await waitFor(() => expect(resolveDefaultTeamAgentModelMock).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    rerender(<TeamCreateModal visible={false} onClose={onClose} onCreated={onCreated} />);
+
+    await act(async () => finish('gpt-4.1'));
+
+    expect(createTeamInvokeMock).not.toHaveBeenCalled();
+    expect(onCreated).not.toHaveBeenCalled();
+  });
+
+  it('keeps a newly opened draft when an earlier create response arrives', async () => {
+    let finish: (team: { id: string }) => void = vi.fn();
+    createTeamInvokeMock.mockReturnValueOnce(
+      new Promise<{ id: string }>((resolve) => {
+        finish = resolve;
+      })
+    );
+    const onCreated = vi.fn();
+    const onClose = vi.fn();
+    const { rerender } = render(<TeamCreateModal visible onClose={onClose} onCreated={onCreated} />);
+    await selectAssistant('bare-aionrs');
+    fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'First Team' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
+    await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    rerender(<TeamCreateModal visible={false} onClose={onClose} onCreated={onCreated} />);
+    rerender(<TeamCreateModal visible onClose={onClose} onCreated={onCreated} />);
+    fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'Second Team' } });
+
+    await act(async () => finish({ id: 'team-old' }));
+
+    expect(screen.getByTestId('team-create-name-input')).toHaveValue('Second Team');
+    expect(onCreated).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('submits only once when confirm is clicked twice before React renders', async () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+    await selectAssistant('bare-aionrs');
+    fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'Single Team' } });
+    const confirm = screen.getByRole('button', { name: 'Confirm Create' });
+
+    await act(async () => {
+      confirm.click();
+      confirm.click();
+    });
+
+    expect(createTeamInvokeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows member selection immediately after cancelling an unfinished create', async () => {
+    resolveDefaultTeamAgentModelMock.mockReturnValueOnce(new Promise(() => {}));
+    const onClose = vi.fn();
+    const onCreated = vi.fn();
+    const { rerender } = render(<TeamCreateModal visible onClose={onClose} onCreated={onCreated} />);
+    await selectAssistant('bare-aionrs');
+    fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'First Team' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
+    await waitFor(() => expect(resolveDefaultTeamAgentModelMock).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    rerender(<TeamCreateModal visible={false} onClose={onClose} onCreated={onCreated} />);
+    rerender(<TeamCreateModal visible onClose={onClose} onCreated={onCreated} />);
+
+    await selectAssistant('remote-runner');
+
+    expect(screen.getAllByRole('button', { name: 'Current Leader' })).toHaveLength(1);
+  });
+
+  it('preserves the team draft through blocked setup and uses the same members and workspace on retry', async () => {
+    let createChecks = 0;
+    ensureReadyMock.mockImplementation((_requests, options) =>
+      Promise.resolve(options?.configureApi || ++createChecks > 1)
+    );
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'Saved Draft Team' } });
+    await selectAssistant('bare-aionrs');
+    await selectAssistant('remote-runner');
+    fireEvent.click(screen.getByRole('button', { name: 'Set as Leader' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose test folder' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
+
+    await waitFor(() => expect(ensureReadyMock).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Confirm Create' })).toBeEnabled());
+    expect(screen.getByTestId('team-create-name-input')).toHaveValue('Saved Draft Team');
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
+    await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
+
+    expect(createTeamInvokeMock.mock.calls[0][0]).toMatchObject({
+      name: 'Saved Draft Team',
+      workspace: '/projects/product',
+      agents: [
+        { assistant_id: 'bare-aionrs', role: 'teammate' },
+        { assistant_id: 'remote-runner', role: 'leader' },
+      ],
+    });
+  });
+
+  it('surfaces readiness lookup errors without creating a team', async () => {
+    ensureReadyMock.mockImplementation((_requests, options) =>
+      options?.configureApi ? Promise.resolve(true) : Promise.reject(new Error('Connection settings unavailable'))
+    );
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'Retry Team' } });
+    await selectAssistant('bare-aionrs');
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
+
+    await waitFor(() => expect(messageErrorMock).toHaveBeenCalled());
+    expect(createTeamInvokeMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('assistant-connection-dialog')).toBeInTheDocument();
+  });
+
+  it('requests API setup as soon as an assistant is selected, before a team name is entered', async () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+    await selectAssistant('bare-aionrs');
+    expect(ensureReadyMock).toHaveBeenCalledWith([{ id: 'bare-aionrs' }], { configureApi: true });
+    expect(screen.getByTestId('team-create-name-input')).toHaveValue('');
+    expect(createTeamInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('temporarily hides the team modal for connection settings and restores its draft afterward', async () => {
+    const onClose = vi.fn();
+    const onCreated = vi.fn();
+    const { rerender } = render(<TeamCreateModal visible onClose={onClose} onCreated={onCreated} />);
+    fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'Configure Team' } });
+    await selectAssistant('bare-aionrs');
+
+    connectionSettingsVisible = true;
+    rerender(<TeamCreateModal visible onClose={onClose} onCreated={onCreated} />);
+    expect(screen.queryByTestId('team-create-modal')).not.toBeInTheDocument();
+
+    connectionSettingsVisible = false;
+    rerender(<TeamCreateModal visible onClose={onClose} onCreated={onCreated} />);
+    expect(screen.getByTestId('team-create-name-input')).toHaveValue('Configure Team');
+    expect(screen.getByRole('button', { name: 'Current Leader' })).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('keeps blocked assistants visible and prevents selecting them', () => {
@@ -160,7 +417,7 @@ describe('TeamCreateModal', () => {
   it('creates the product team with the manager leading and a shared workspace', async () => {
     suppliedAssistants = productAssistants();
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
-    fireEvent.click(screen.getByTestId('team-create-product-preset'));
+    await selectProductPreset();
     fireEvent.click(screen.getByRole('button', { name: 'Choose test folder' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
 
@@ -177,16 +434,16 @@ describe('TeamCreateModal', () => {
     });
   });
 
-  it('preserves the entered project name when using the product team preset', () => {
+  it('preserves the entered project name when using the product team preset', async () => {
     suppliedAssistants = productAssistants();
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
     fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'My existing product' } });
-    fireEvent.click(screen.getByTestId('team-create-product-preset'));
+    await selectProductPreset();
     expect(screen.getByTestId('team-create-name-input')).toHaveValue('My existing product');
     expect(screen.getAllByRole('button', { name: 'Current Leader' })).toHaveLength(1);
   });
 
-  it('disables the product team shortcut if a required specialist is unavailable', () => {
+  it('disables the product team shortcut if a required specialist is unavailable', async () => {
     suppliedAssistants = productAssistants();
     suppliedAssistants.find((row) => row.id === 'foundry-prd')!.team_selectable = false;
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
@@ -270,7 +527,7 @@ describe('TeamCreateModal', () => {
     fireEvent.change(screen.getByPlaceholderText('Team name'), {
       target: { value: 'Docs Team' },
     });
-    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    await selectAssistant('bare-aionrs');
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
 
     await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
@@ -301,8 +558,8 @@ describe('TeamCreateModal', () => {
     fireEvent.change(screen.getByPlaceholderText('Team name'), {
       target: { value: 'Duplicate Team' },
     });
-    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
-    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    await selectAssistant('bare-aionrs');
+    await selectAssistant('bare-aionrs');
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
 
     await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
@@ -322,8 +579,8 @@ describe('TeamCreateModal', () => {
     fireEvent.change(screen.getByPlaceholderText('Team name'), {
       target: { value: 'Manual Team' },
     });
-    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
-    fireEvent.click(screen.getByTestId('team-create-agent-option-remote-runner'));
+    await selectAssistant('bare-aionrs');
+    await selectAssistant('remote-runner');
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
 
     await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
@@ -338,8 +595,8 @@ describe('TeamCreateModal', () => {
     fireEvent.change(screen.getByPlaceholderText('Team name'), {
       target: { value: 'Switch Leader Team' },
     });
-    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
-    fireEvent.click(screen.getByTestId('team-create-agent-option-remote-runner'));
+    await selectAssistant('bare-aionrs');
+    await selectAssistant('remote-runner');
     fireEvent.click(screen.getByRole('button', { name: 'Set as Leader' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
 
@@ -350,12 +607,12 @@ describe('TeamCreateModal', () => {
     expect(payload.agents.filter((agent: { role: string }) => agent.role === 'leader')).toHaveLength(1);
   });
 
-  it('leader_flag_controls_show_and_switch_a_single_active_leader', () => {
+  it('leader_flag_controls_show_and_switch_a_single_active_leader', async () => {
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
 
-    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
-    fireEvent.click(screen.getByTestId('team-create-agent-option-remote-runner'));
-    fireEvent.click(screen.getByTestId('team-create-agent-option-remote-runner'));
+    await selectAssistant('bare-aionrs');
+    await selectAssistant('remote-runner');
+    await selectAssistant('remote-runner');
 
     const rows = screen.getAllByTestId(/team-create-member-draft-/);
     expect(rows).toHaveLength(3);
@@ -378,8 +635,8 @@ describe('TeamCreateModal', () => {
     fireEvent.change(screen.getByPlaceholderText('Team name'), {
       target: { value: 'Promote Leader Team' },
     });
-    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
-    fireEvent.click(screen.getByTestId('team-create-agent-option-remote-runner'));
+    await selectAssistant('bare-aionrs');
+    await selectAssistant('remote-runner');
     fireEvent.click(screen.getAllByTestId(/team-create-member-remove-/)[0]);
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
 
@@ -406,8 +663,8 @@ describe('TeamCreateModal', () => {
     fireEvent.change(screen.getByPlaceholderText('Team name'), {
       target: { value: 'Model Failure Team' },
     });
-    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
-    fireEvent.click(screen.getByTestId('team-create-agent-option-remote-runner'));
+    await selectAssistant('bare-aionrs');
+    await selectAssistant('remote-runner');
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
 
     await waitFor(() => expect(messageErrorMock).toHaveBeenCalled());
@@ -425,12 +682,16 @@ describe('TeamCreateModal · mobile (narrow screen)', () => {
     resolveDefaultTeamAgentModelMock.mockReset();
     resolveDefaultTeamAgentModelMock.mockResolvedValue(undefined);
     messageErrorMock.mockReset();
+    ensureReadyMock.mockReset();
+    ensureReadyMock.mockResolvedValue(true);
+    cancelPendingMock.mockReset();
+    connectionSettingsVisible = false;
   });
 
-  it('offers the same product team shortcut on mobile', () => {
+  it('offers the same product team shortcut on mobile', async () => {
     suppliedAssistants = productAssistants();
     renderMobile(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
-    fireEvent.click(screen.getByTestId('team-create-product-preset'));
+    await selectProductPreset();
     expect(screen.getAllByTestId(/team-create-member-draft-/)).toHaveLength(3);
     expect(screen.getByRole('button', { name: 'Confirm Create' })).toBeEnabled();
   });
@@ -460,7 +721,7 @@ describe('TeamCreateModal · mobile (narrow screen)', () => {
 
     // Dropdown reveals the reused picker (same search box + options as desktop).
     await waitFor(() => expect(screen.getByTestId('team-create-agent-search')).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    await selectAssistant('bare-aionrs');
 
     // Select-and-close: the dropdown collapses so the user sees the result below.
     await waitFor(() => expect(screen.queryByTestId('team-create-agent-search')).not.toBeInTheDocument());
@@ -477,7 +738,7 @@ describe('TeamCreateModal · mobile (narrow screen)', () => {
 
     fireEvent.click(screen.getByTestId('team-create-add-member-btn'));
     await waitFor(() => expect(screen.getByTestId('team-create-agent-search')).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    await selectAssistant('bare-aionrs');
     fireEvent.change(screen.getByTestId('team-create-name-input'), { target: { value: 'Mobile Team' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Create' }));
 

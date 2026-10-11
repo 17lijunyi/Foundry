@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,6 +12,17 @@ const addAssistantMock = vi.fn();
 const switchTabMock = vi.fn();
 const resolveDefaultTeamAgentModelMock = vi.fn();
 const messageErrorMock = vi.fn();
+const ensureReadyMock = vi.fn();
+const cancelPendingMock = vi.fn();
+let currentTeamId = 'team-1';
+
+vi.mock('@/renderer/hooks/agent/connection', () => ({
+  useAssistantConnection: () => ({
+    ensureReady: (...args: unknown[]) => ensureReadyMock(...args),
+    cancelPending: cancelPendingMock,
+    dialog: null,
+  }),
+}));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -66,6 +77,7 @@ vi.mock('@/renderer/pages/team/hooks/useTeamAssistantOptions', () => ({
 
 vi.mock('@/renderer/pages/team/hooks/TeamTabsContext', () => ({
   useTeamTabs: () => ({
+    team_id: currentTeamId,
     addAssistant: addAssistantMock,
     switchTab: switchTabMock,
     assistants: [
@@ -89,12 +101,131 @@ import TeamAddMemberPopover from '@/renderer/pages/team/components/memberPicker/
 
 describe('TeamAddMemberPopover', () => {
   beforeEach(() => {
+    currentTeamId = 'team-1';
+    cancelPendingMock.mockReset();
+    ensureReadyMock.mockReset();
+    ensureReadyMock.mockResolvedValue(true);
     addAssistantMock.mockReset();
     switchTabMock.mockReset();
     messageErrorMock.mockReset();
     resolveDefaultTeamAgentModelMock.mockReset();
     resolveDefaultTeamAgentModelMock.mockResolvedValue('claude-sonnet-4');
     addAssistantMock.mockResolvedValue({ slot_id: 'slot-new' });
+  });
+
+  it('opens API setup on selection and prevents adding an unconfigured member', async () => {
+    ensureReadyMock.mockResolvedValue(false);
+    render(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+    fireEvent.click(screen.getByTestId('team-add-member-option-unchecked'));
+    await waitFor(() => expect(ensureReadyMock).toHaveBeenCalledWith([{ id: 'unchecked' }], { configureApi: true }));
+    expect(resolveDefaultTeamAgentModelMock).not.toHaveBeenCalled();
+    expect(addAssistantMock).not.toHaveBeenCalled();
+  });
+
+  it('does not add a member when the active team changes during model resolution', async () => {
+    let finish: (model: string) => void = vi.fn();
+    resolveDefaultTeamAgentModelMock.mockReturnValueOnce(
+      new Promise<string>((resolve) => {
+        finish = resolve;
+      })
+    );
+    const ui = (
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+    const { rerender } = render(ui);
+    fireEvent.click(screen.getByTestId('team-add-member-option-unchecked'));
+    await waitFor(() => expect(resolveDefaultTeamAgentModelMock).toHaveBeenCalledTimes(1));
+    currentTeamId = 'team-2';
+    rerender(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+
+    await act(async () => finish('gpt-4.1'));
+
+    expect(addAssistantMock).not.toHaveBeenCalled();
+    expect(switchTabMock).not.toHaveBeenCalled();
+  });
+
+  it('does not add a member after unmounting while connection setup is pending', async () => {
+    let finish: (ready: boolean) => void = vi.fn();
+    ensureReadyMock.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      })
+    );
+    const { unmount } = render(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+    fireEvent.click(screen.getByTestId('team-add-member-option-unchecked'));
+    unmount();
+
+    await act(async () => finish(true));
+
+    expect(addAssistantMock).not.toHaveBeenCalled();
+    expect(cancelPendingMock).toHaveBeenCalled();
+  });
+
+  it('does not switch the new team to a slot returned by an old member request', async () => {
+    let finish: (member: { slot_id: string }) => void = vi.fn();
+    addAssistantMock.mockReturnValueOnce(
+      new Promise<{ slot_id: string }>((resolve) => {
+        finish = resolve;
+      })
+    );
+    const { rerender } = render(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+    fireEvent.click(screen.getByTestId('team-add-member-option-unchecked'));
+    await waitFor(() => expect(addAssistantMock).toHaveBeenCalledTimes(1));
+    currentTeamId = 'team-2';
+    rerender(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+
+    await act(async () => finish({ slot_id: 'old-team-slot' }));
+
+    expect(switchTabMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('team-add-member-option-unchecked')).toBeEnabled();
+  });
+
+  it('stops pending member selection when member operations become disabled', async () => {
+    let finish: (model: string) => void = vi.fn();
+    resolveDefaultTeamAgentModelMock.mockReturnValueOnce(
+      new Promise<string>((resolve) => {
+        finish = resolve;
+      })
+    );
+    const { rerender } = render(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+    fireEvent.click(screen.getByTestId('team-add-member-option-unchecked'));
+    await waitFor(() => expect(resolveDefaultTeamAgentModelMock).toHaveBeenCalledTimes(1));
+    rerender(
+      <TeamAddMemberPopover disabled>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+
+    await act(async () => finish('gpt-4.1'));
+
+    expect(addAssistantMock).not.toHaveBeenCalled();
+    expect(switchTabMock).not.toHaveBeenCalled();
   });
 
   it('does not mark duplicate assistants already in team or disable selectable unchecked rows', () => {

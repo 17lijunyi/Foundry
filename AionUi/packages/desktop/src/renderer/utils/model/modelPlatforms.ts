@@ -13,6 +13,7 @@
  */
 
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
+import type { ModelOpenAiApiMode } from '@/common/config/storage';
 
 const buildLogoAssetUrl = (path: string): string => {
   return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
@@ -41,6 +42,10 @@ export interface PlatformConfig {
   base_url?: string;
   /** 国际化 key（可选，用于需要翻译的平台名称） / i18n key (optional, for platform names that need translation) */
   i18nKey?: string;
+  /** Suggested models for setup before the authenticated catalog is fetched. */
+  defaultModels?: string[];
+  /** Explicit wire API for providers with a known compatible endpoint. */
+  openAiApiMode?: ModelOpenAiApiMode;
 }
 
 /**
@@ -125,6 +130,8 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-major/deepseek.svg'),
     platform: 'custom',
     base_url: 'https://api.deepseek.com/v1',
+    defaultModels: ['deepseek-flash', 'deepseek-v4-pro'],
+    openAiApiMode: 'chat_completions',
   },
   {
     name: 'MiniMax',

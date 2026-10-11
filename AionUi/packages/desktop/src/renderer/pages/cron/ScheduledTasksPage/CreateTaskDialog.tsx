@@ -162,13 +162,18 @@ function parseCronExpr(expr: string): { frequency: FrequencyType; time: string; 
   if (!expr) return { frequency: 'manual', time: '09:00', weekday: 'MON' };
 
   const parts = expr.trim().split(/\s+/);
-  if (parts.length < 5) return { frequency: 'daily', time: '09:00', weekday: 'MON' };
+  if (parts.length !== 5) return { frequency: 'custom', time: '09:00', weekday: 'MON' };
 
   const [min, hour, day, month, dow] = parts;
 
   // Hourly: 0 * * * *
   if (hour === '*' && min === '0' && day === '*' && month === '*' && dow === '*') {
     return { frequency: 'hourly', time: '09:00', weekday: 'MON' };
+  }
+
+  // Simple frequencies can only represent a single valid time of day.
+  if (!/^\d{1,2}$/.test(hour) || !/^\d{1,2}$/.test(min) || Number(hour) > 23 || Number(min) > 59) {
+    return { frequency: 'custom', time: '09:00', weekday: 'MON' };
   }
 
   // Weekdays: min hour * * MON-FRI
@@ -189,7 +194,7 @@ function parseCronExpr(expr: string): { frequency: FrequencyType; time: string; 
       const time = `${hh}:${mm}`;
       return { frequency: 'weekly', time, weekday: dayUpper };
     }
-    return { frequency: 'daily', time: '09:00', weekday: 'MON' };
+    return { frequency: 'custom', time: '09:00', weekday: 'MON' };
   }
 
   // Daily: min hour * * * - only if all parts match the expected pattern
@@ -270,11 +275,13 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     if (editJob) {
       const cronExpr = editJob.schedule.kind === 'cron' ? editJob.schedule.expr : '';
       const parsed = parseCronExpr(cronExpr);
+      const parsedCustom =
+        parsed.frequency === 'custom' ? parseCustomSchedule(cronExpr) : createDefaultCustomSchedule();
       const agentKey = getAssistantSelectionFromJob(editJob);
       setFrequency(parsed.frequency);
       setTime(parsed.time);
       setWeekday(parsed.weekday);
-      setCustomSchedule(parsed.frequency === 'custom' ? parseCustomSchedule(cronExpr) : createDefaultCustomSchedule());
+      setCustomSchedule(parsedCustom);
       setExecutionMode(editJob.target.execution_mode || 'existing');
       setQueueEnabled(editJob.state.queue_enabled);
       setSelectedAssistantId(agentKey);
@@ -290,6 +297,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         name: editJob.name,
         assistant: agentKey,
         prompt: editJob.target.payload.text,
+        customCronExpr: parsedCustom.advancedExpression || undefined,
       });
       // Populate advanced settings from editJob
       setModelId(editJob.metadata.agent_config?.model_id ?? editJob.metadata.agent_config?.model?.model);
@@ -503,6 +511,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setFrequency(value);
     if (value !== 'custom') {
       setCustomSchedule(createDefaultCustomSchedule());
+      form.setFieldsValue({ customCronExpr: undefined });
     }
   };
 

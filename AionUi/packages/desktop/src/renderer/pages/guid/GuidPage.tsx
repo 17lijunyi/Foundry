@@ -42,6 +42,9 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
+import { AssistantConnectionNotice, useAssistantConnection } from '@/renderer/hooks/agent/connection';
+import { getAssistantConnectionIssue } from '@/renderer/hooks/agent/connection/readiness';
+import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 
 type GuidNavigationState = {
   resetAssistant?: boolean;
@@ -66,6 +69,7 @@ const GuidPage: React.FC = () => {
   const [assistantMotionId, setAssistantMotionId] = useState<string>();
   const [promptTransfer, setPromptTransfer] = useState<PromptTransfer>();
   const promptSequenceRef = useRef(0);
+  const selectingAssistantRef = useRef(false);
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -137,6 +141,8 @@ const GuidPage: React.FC = () => {
   // Only aionrs uses this provider-based model picker now (Gemini runs as a
   // regular ACP backend with its own model selector).
   const modelSelection = useGuidModelSelection('aionrs');
+  const { data: configuredProviders } = useProvidersQuery();
+  const connection = useAssistantConnection();
 
   const navState = location.state as GuidNavigationState | null;
   const resetAssistantRequested = navState?.resetAssistant === true;
@@ -145,6 +151,7 @@ const GuidPage: React.FC = () => {
     resetAssistant: resetAssistantRequested,
     preselectAssistantId,
     locationKey: location.key,
+    apiModelsReady: modelSelection.modelList.length > 0,
   });
 
   const guidInput = useGuidInput({
@@ -250,6 +257,10 @@ const GuidPage: React.FC = () => {
   );
 
   const send = useGuidSend({
+    ensureConnection: () =>
+      selectedAssistantId
+        ? connection.ensureReady([{ id: selectedAssistantId, model: modelSelection.current_model }])
+        : Promise.resolve(false),
     // Input state
     input: guidInput.input,
     setInput: guidInput.setInput,
@@ -316,11 +327,18 @@ const GuidPage: React.FC = () => {
   );
 
   const handleSelectAssistant = useCallback(
-    (assistantId: string) => {
-      if (assistantId !== agentSelection.selectedAssistantId) setAssistantMotionId(assistantId);
-      agentSelection.setSelectedAssistantId(assistantId);
+    async (assistantId: string) => {
+      if (selectingAssistantRef.current) return;
+      selectingAssistantRef.current = true;
+      try {
+        if (!(await connection.ensureReady([{ id: assistantId }], { configureApi: true }))) return;
+        if (assistantId !== agentSelection.selectedAssistantId) setAssistantMotionId(assistantId);
+        agentSelection.setSelectedAssistantId(assistantId);
+      } finally {
+        selectingAssistantRef.current = false;
+      }
     },
-    [agentSelection.setSelectedAssistantId, agentSelection.selectedAssistantId]
+    [agentSelection.setSelectedAssistantId, agentSelection.selectedAssistantId, connection.ensureReady]
   );
 
   // Typewriter placeholder
@@ -350,6 +368,18 @@ const GuidPage: React.FC = () => {
 
     return [t('guid.defaultPrompts.understand'), t('guid.defaultPrompts.cleanup'), t('guid.defaultPrompts.create')];
   }, [localeKey, selectedAssistantDetail, selectedAssistantRecord, selectedAssistantId, t]);
+  const connectionIssue = useMemo(
+    () =>
+      selectedAssistantDetail && configuredProviders
+        ? getAssistantConnectionIssue(
+            selectedAssistantDetail,
+            configuredProviders,
+            { model: modelSelection.current_model },
+            localeKey
+          )
+        : null,
+    [selectedAssistantDetail, configuredProviders, modelSelection.current_model, localeKey]
+  );
 
   // Sync disabledBuiltinSkills + enabledSkills from assistant detail defaults.
   useEffect(() => {
@@ -681,6 +711,13 @@ const GuidPage: React.FC = () => {
             </div>
           </div>
 
+          <AssistantConnectionNotice
+            issue={connectionIssue}
+            onConfigure={() => connection.openSetup(connectionIssue?.kind === 'agentUnavailable' ? 'agent' : 'model')}
+          />
+          {selectedAssistantDetail && agentSelection.selectedAssistantBackend !== 'aionrs' && !connectionIssue && (
+            <p className='m-0 text-12px leading-20px text-t-tertiary'>{t('agent.connection.cliHint')}</p>
+          )}
           <GuidInputCard
             assistantMotionKey={assistantMotionId === selectedAssistantId ? assistantMotionId : undefined}
             promptTransfer={promptTransfer}
@@ -762,6 +799,7 @@ const GuidPage: React.FC = () => {
         </div>
 
         <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
+        {connection.dialog}
       </div>
     </ConfigProvider>
   );

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Input, Message } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Plus } from '@icon-park/react';
@@ -8,6 +8,7 @@ import type { TTeam } from '@/common/types/team/teamTypes';
 import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useAssistantConnection } from '@renderer/hooks/agent/connection';
 import AionModal from '@renderer/components/base/AionModal';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
@@ -35,6 +36,12 @@ type Props = {
 const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const {
+    ensureReady,
+    cancelPending,
+    dialog: connectionDialog,
+    settingsVisible: connectionSettingsVisible,
+  } = useAssistantConnection();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { assistants: allAssistants } = useTeamAssistantOptions(i18n?.language ?? 'en-US');
@@ -47,6 +54,25 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   // 窄屏专用：助手选择器以下拉列表形式，锚在“添加成员”按钮上按需唤出。
   const [assistantDropdownOpen, setAssistantDropdownOpen] = useState(false);
   const nameInputRef = useRef<RefInputType | null>(null);
+  const [pendingAssistantId, setPendingAssistantId] = useState<string>();
+  const pendingSelectionRef = useRef(false);
+  // Ignore async results from a dialog that has since been closed or reopened.
+  const operationGenerationRef = useRef(0);
+  const pendingCreateRef = useRef(false);
+
+  useEffect(() => {
+    if (!visible) {
+      ++operationGenerationRef.current;
+      pendingSelectionRef.current = false;
+      pendingCreateRef.current = false;
+      setLoading(false);
+      setPendingAssistantId(undefined);
+      cancelPending();
+    }
+    return () => {
+      ++operationGenerationRef.current;
+    };
+  }, [visible, cancelPending]);
 
   const hasOneLeader = useMemo(
     () => Boolean(leaderSelectionId && selectedMembers.some((member) => member.selectionId === leaderSelectionId)),
@@ -54,6 +80,12 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   );
 
   const handleClose = () => {
+    ++operationGenerationRef.current;
+    pendingSelectionRef.current = false;
+    pendingCreateRef.current = false;
+    setLoading(false);
+    setPendingAssistantId(undefined);
+    cancelPending();
     setName('');
     setSelectedMembers([]);
     setLeaderSelectionId(undefined);
@@ -62,27 +94,50 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     onClose();
   };
 
+  const prepareSelection = async (assistants: TeamAssistantOption[], commit: () => void) => {
+    if (pendingCreateRef.current || pendingSelectionRef.current || !visible) return;
+    const generation = ++operationGenerationRef.current;
+    pendingSelectionRef.current = true;
+    setPendingAssistantId(assistants[0].id);
+    try {
+      const ready = await ensureReady(
+        assistants.map((assistant) => ({ id: assistant.id })),
+        { configureApi: true }
+      );
+      if (ready && generation === operationGenerationRef.current) commit();
+    } finally {
+      if (generation === operationGenerationRef.current) {
+        pendingSelectionRef.current = false;
+        setPendingAssistantId(undefined);
+      }
+    }
+  };
+
   const handleSelectAssistant = (assistant: TeamAssistantOption) => {
-    const draft = {
-      selectionId: `${assistant.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      assistant,
-    };
-    setSelectedMembers((members) => [...members, draft]);
-    setLeaderSelectionId((current) => current ?? draft.selectionId);
+    void prepareSelection([assistant], () => {
+      const draft = {
+        selectionId: `${assistant.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        assistant,
+      };
+      setSelectedMembers((members) => [...members, draft]);
+      setLeaderSelectionId((current) => current ?? draft.selectionId);
+    });
   };
 
   const handleUseProductTeam = () => {
     if (!productTeamAssistants) return;
-    const members = productTeamAssistants.map((assistant) => ({
-      selectionId: `${assistant.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      assistant,
-    }));
-    setSelectedMembers(members);
-    setLeaderSelectionId(members[0].selectionId);
-    setName(
-      (current) => current || t('team.create.productTeamName', { defaultValue: 'Product development and iteration' })
-    );
-    setAssistantDropdownOpen(false);
+    void prepareSelection(productTeamAssistants, () => {
+      const members = productTeamAssistants.map((assistant) => ({
+        selectionId: `${assistant.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        assistant,
+      }));
+      setSelectedMembers(members);
+      setLeaderSelectionId(members[0].selectionId);
+      setName(
+        (current) => current || t('team.create.productTeamName', { defaultValue: 'Product development and iteration' })
+      );
+      setAssistantDropdownOpen(false);
+    });
   };
 
   const handleRemoveDraft = (selectionId: string) => {
@@ -94,6 +149,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   };
 
   const handleCreate = async () => {
+    if (!visible || pendingCreateRef.current || pendingSelectionRef.current) return;
     if (!name.trim()) {
       Message.warning(t('team.create.nameRequired', { defaultValue: 'Please enter a team name' }));
       nameInputRef.current?.focus();
@@ -108,8 +164,13 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       return;
     }
     const user_id = user?.id ?? 'system_default_user';
+    const generation = ++operationGenerationRef.current;
+    pendingCreateRef.current = true;
     setLoading(true);
     try {
+      const ready = await ensureReady(selectedMembers.map((member) => ({ id: member.assistant.id })));
+      if (!ready || generation !== operationGenerationRef.current) return;
+
       const resolvedModels = await Promise.all(
         selectedMembers.map(async (member) => {
           try {
@@ -119,12 +180,19 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             });
             return [member.selectionId, model] as const;
           } catch (error) {
-            throw new Error(`${member.assistant.name}: ${getConversationCreateErrorMessage(error, t)}`, {
+            const message =
+              error instanceof Error && error.message === 'AIONRS_NO_AVAILABLE_MODEL'
+                ? t('agent.connection.noApiModel')
+                : error instanceof Error && error.message === 'AIONRS_MODEL_UNAVAILABLE'
+                  ? t('agent.connection.modelUnavailable')
+                  : getConversationCreateErrorMessage(error, t);
+            throw new Error(`${member.assistant.name}: ${message}`, {
               cause: error,
             });
           }
         })
       );
+      if (generation !== operationGenerationRef.current) return;
       const modelBySelectionId = new Map(resolvedModels);
       const agents: TeamAssistantInput[] = selectedMembers.map((member) => ({
         role: member.selectionId === leaderSelectionId ? 'leader' : 'teammate',
@@ -141,6 +209,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         agents,
       });
 
+      if (generation !== operationGenerationRef.current) return;
+
       // The platform bridge swallows provider errors and returns a sentinel object
       const result = team as unknown as { __bridgeError?: boolean; message?: string };
       if (result.__bridgeError) {
@@ -151,9 +221,14 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       onCreated(team);
       handleClose();
     } catch (error) {
-      Message.error(getConversationCreateErrorMessage(error, t));
+      if (generation === operationGenerationRef.current) {
+        Message.error(getConversationCreateErrorMessage(error, t));
+      }
     } finally {
-      setLoading(false);
+      if (generation === operationGenerationRef.current) {
+        pendingCreateRef.current = false;
+        setLoading(false);
+      }
     }
   };
   // 助手选择器：桌面端嵌在左栏，窄屏端复用同一份放进底部面板。空态文案与逻辑完全一致。
@@ -169,6 +244,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
           onSelect={handleSelectAssistant}
           testIdPrefix='team-create-agent'
           density='modal'
+          disabled={loading || Boolean(pendingAssistantId)}
+          pendingAssistantId={pendingAssistantId}
         />
       )}
     </>
@@ -179,7 +256,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       <Button
         type='outline'
         size='small'
-        disabled={!productTeamAssistants}
+        disabled={!productTeamAssistants || loading || Boolean(pendingAssistantId)}
         onClick={handleUseProductTeam}
         data-testid='team-create-product-preset'
       >
@@ -283,6 +360,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       testIdPrefix='team-create-agent'
       panelTestId='team-create-assistant-pane'
       emptyText={t('team.create.noSupportedAgents', { defaultValue: 'No supported assistants available' })}
+      disabled={loading || Boolean(pendingAssistantId)}
+      pendingAssistantId={pendingAssistantId}
     >
       <Button
         type='outline'
@@ -316,51 +395,54 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   );
 
   return (
-    <AionModal
-      variant='standard'
-      visible={visible}
-      onCancel={handleClose}
-      className='team-create-modal'
-      style={{
-        width: isMobile ? 'calc(100vw - 32px)' : 900,
-        maxWidth: isMobile ? 'calc(100vw - 32px)' : 'calc(100vw - 72px)',
-      }}
-      wrapStyle={{ zIndex: 10000 }}
-      maskStyle={{ zIndex: 9999 }}
-      autoFocus={false}
-      unmountOnExit={false}
-      // 桌面通栏双栏是团队创建独有的布局：关闭内容区默认内边距，让中间竖分隔线贴边贯穿。
-      // 窄屏改为单栏（自带内边距），标题区 / 按钮区 / 居中 / 最大高度均沿用 standard 统一规则。
-      contentStyle={{ padding: 0, overflow: 'hidden' }}
-      header={{
-        title: t('team.create.title', { defaultValue: 'New Team' }),
-        subtitle: t('team.create.subtitle', {
-          defaultValue:
-            'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.',
-        }),
-        showClose: true,
-      }}
-      footer={{
-        render: () => (
-          <div className='flex justify-end gap-10px'>
-            <Button onClick={handleClose} className='!h-38px min-w-84px !rounded-8px !px-18px !text-13px'>
-              {t('common.cancel', { defaultValue: 'Cancel' })}
-            </Button>
-            <Button
-              type='primary'
-              onClick={handleCreate}
-              loading={loading}
-              disabled={!name.trim() || selectedMembers.length === 0 || !hasOneLeader}
-              className='!h-38px min-w-100px !rounded-8px !px-18px !text-13px'
-            >
-              {t('team.create.confirm', { defaultValue: 'Confirm Create' })}
-            </Button>
-          </div>
-        ),
-      }}
-    >
-      {isMobile ? mobileBody : desktopBody}
-    </AionModal>
+    <>
+      <AionModal
+        variant='standard'
+        visible={visible && !connectionSettingsVisible}
+        onCancel={handleClose}
+        className='team-create-modal'
+        style={{
+          width: isMobile ? 'calc(100vw - 32px)' : 900,
+          maxWidth: isMobile ? 'calc(100vw - 32px)' : 'calc(100vw - 72px)',
+        }}
+        wrapStyle={{ zIndex: 10000 }}
+        maskStyle={{ zIndex: 9999 }}
+        autoFocus={false}
+        unmountOnExit={false}
+        // 桌面通栏双栏是团队创建独有的布局：关闭内容区默认内边距，让中间竖分隔线贴边贯穿。
+        // 窄屏改为单栏（自带内边距），标题区 / 按钮区 / 居中 / 最大高度均沿用 standard 统一规则。
+        contentStyle={{ padding: 0, overflow: 'hidden' }}
+        header={{
+          title: t('team.create.title', { defaultValue: 'New Team' }),
+          subtitle: t('team.create.subtitle', {
+            defaultValue:
+              'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.',
+          }),
+          showClose: true,
+        }}
+        footer={{
+          render: () => (
+            <div className='flex justify-end gap-10px'>
+              <Button onClick={handleClose} className='!h-38px min-w-84px !rounded-8px !px-18px !text-13px'>
+                {t('common.cancel', { defaultValue: 'Cancel' })}
+              </Button>
+              <Button
+                type='primary'
+                onClick={handleCreate}
+                loading={loading}
+                disabled={Boolean(pendingAssistantId) || !name.trim() || selectedMembers.length === 0 || !hasOneLeader}
+                className='!h-38px min-w-100px !rounded-8px !px-18px !text-13px'
+              >
+                {t('team.create.confirm', { defaultValue: 'Confirm Create' })}
+              </Button>
+            </div>
+          ),
+        }}
+      >
+        {isMobile ? mobileBody : desktopBody}
+      </AionModal>
+      {connectionDialog}
+    </>
   );
 };
 

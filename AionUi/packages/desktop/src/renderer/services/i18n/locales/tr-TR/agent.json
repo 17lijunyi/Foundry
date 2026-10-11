@@ -1,4 +1,17 @@
 {
+  "connection": {
+    "title": "Önce asistanın modelini bağlayın",
+    "noApiModel": "Bu asistanı kullanmadan önce sağlayıcı, API anahtarı ve model yapılandırın. Kaydedilmiş bir bağlantıyı da kullanabilirsiniz.",
+    "modelUnavailable": "Asistanın seçili modeli kaldırılmış veya devre dışı bırakılmış. Modeli etkinleştirin ya da asistanın Varsayılan Yapılandırma bölümünde kullanılabilir bir model seçin.",
+    "agentUnavailable": "Asistanın yerel Agent'ı yüklü değil veya bağlanamıyor. Agent ayarlarında kurulum ve oturum açma yapılandırmasını kontrol edin.",
+    "checkFailed": "Bağlantı ayarları okunamadı. Daha sonra tekrar kontrol edin. Girdiniz ve seçili üyeler korunacak.",
+    "configureApi": "Model API'sini yapılandır",
+    "manageAgent": "Yerel Agent'ı kontrol et",
+    "sharedHint": "Yerelde oturum açılmış bir CLI için API anahtarını tekrar girmeniz gerekmez. Asistanın Motor → Agent bölümünde ilgili CLI'ı seçin. API ayarlarını kaydetmek bağlantıyı veya kotayı doğrulamaz.",
+    "resumeHint": "Yapılandırmadan sonra ayarları kapatıp Başlat veya Takım Oluştur'a tekrar tıklayın. Girdiniz ve üyeler korunacak.",
+    "cliHint": "Bu asistan yerel CLI kullanıyor. CLI'da oturum açtığınızdan emin olun; Foundry'de API anahtarını tekrar yapılandırmanız gerekmez.",
+    "setupTitle": "Model API yapılandırması · {{names}}"
+  },
   "health": {
     "detectedError": "Detected error with current agent ({{agent}})",
     "autoSwitching": ". System will attempt to switch automatically.",

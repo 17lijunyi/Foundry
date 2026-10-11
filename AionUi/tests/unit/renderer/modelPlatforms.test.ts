@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_PLATFORM_VALUE, MODEL_PLATFORMS } from '@renderer/utils/model/modelPlatforms';
+import { DEFAULT_PLATFORM_VALUE, MODEL_PLATFORMS, getPlatformByValue } from '@renderer/utils/model/modelPlatforms';
 
 describe('MODEL_PLATFORMS ordering', () => {
   it('keeps Custom first and pins both Moonshot entries right after it', () => {
@@ -31,5 +31,18 @@ describe('MODEL_PLATFORMS ordering', () => {
       'https://api.moonshot.cn/v1',
       'https://api.moonshot.ai/v1',
     ]);
+  });
+});
+
+describe('DeepSeek API setup preset', () => {
+  it('uses the official OpenAI-compatible endpoint and current model choices', () => {
+    const preset = getPlatformByValue('DeepSeek');
+    expect(preset?.base_url).toBe('https://api.deepseek.com/v1');
+    expect(preset?.defaultModels).toEqual(['deepseek-flash', 'deepseek-v4-pro']);
+    expect(preset?.openAiApiMode).toBe('chat_completions');
+  });
+
+  it('does not resolve an unknown provider as the DeepSeek preset', () => {
+    expect(getPlatformByValue('NotDeepSeek')).toBeUndefined();
   });
 });

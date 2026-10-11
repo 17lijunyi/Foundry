@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
@@ -125,6 +125,54 @@ describe('TaskDetailPage', () => {
     navigateMock.mockReset();
     useCronJobConversationsMock.mockReset();
     useCronJobConversationsMock.mockReturnValue({ conversations: [] });
+  });
+
+  it('keeps the current task when a previous route finishes loading later', async () => {
+    let resolvePrevious!: (value: ICronJob) => void;
+    getJobInvokeMock.mockImplementation(({ job_id }: { job_id: string }) =>
+      job_id === 'job-1'
+        ? new Promise<ICronJob>((resolve) => {
+            resolvePrevious = resolve;
+          })
+        : Promise.resolve(job({ id: 'job-2', name: 'Current task' }))
+    );
+    render(
+      <MemoryRouter initialEntries={['/scheduled/job-1']}>
+        <Link to='/scheduled/job-2'>Switch task</Link>
+        <Routes>
+          <Route path='/scheduled/:job_id' element={<TaskDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(getJobInvokeMock).toHaveBeenCalledWith({ job_id: 'job-1' }));
+    fireEvent.click(screen.getByText('Switch task'));
+    await screen.findByText('Current task');
+    await act(async () => resolvePrevious(job({ name: 'Previous task' })));
+
+    expect(screen.getByText('Current task')).toBeInTheDocument();
+    expect(screen.queryByText('Previous task')).not.toBeInTheDocument();
+  });
+
+  it('does not expose the previous task actions when the next task fails to load', async () => {
+    const logError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    getJobInvokeMock.mockResolvedValueOnce(job({ name: 'Previous task' })).mockRejectedValueOnce(new Error('offline'));
+    render(
+      <MemoryRouter initialEntries={['/scheduled/job-1']}>
+        <Link to='/scheduled/job-2'>Switch task</Link>
+        <Routes>
+          <Route path='/scheduled/:job_id' element={<TaskDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Previous task');
+    fireEvent.click(screen.getByText('Switch task'));
+    await waitFor(() => expect(logError).toHaveBeenCalled());
+
+    expect(screen.queryByText('Previous task')).not.toBeInTheDocument();
+    expect(screen.queryByText('cron.detail.runNow')).not.toBeInTheDocument();
+    logError.mockRestore();
   });
 
   it('triggers run-now only once when the button is clicked twice in quick succession', async () => {

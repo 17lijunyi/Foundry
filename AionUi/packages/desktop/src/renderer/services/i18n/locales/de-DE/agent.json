@@ -1,4 +1,17 @@
 {
+  "connection": {
+    "title": "Zuerst das Modell des Assistenten verbinden",
+    "noApiModel": "Richten Sie vor der Nutzung dieses Assistenten Anbieter, API-Schlüssel und Modell ein. Eine gespeicherte Verbindung kann wiederverwendet werden.",
+    "modelUnavailable": "Das gewählte Modell wurde entfernt oder deaktiviert. Aktivieren Sie es oder wählen Sie ein verfügbares Modell in der Standardkonfiguration des Assistenten.",
+    "agentUnavailable": "Der lokale Agent dieses Assistenten ist nicht installiert oder kann keine Verbindung herstellen. Prüfen Sie Installation und Anmeldung in den Agent-Einstellungen.",
+    "checkFailed": "Die Verbindungseinstellungen konnten nicht gelesen werden. Prüfen Sie sie später erneut. Ihre Eingabe und ausgewählten Mitglieder bleiben erhalten.",
+    "configureApi": "Modell-API konfigurieren",
+    "manageAgent": "Lokalen Agent prüfen",
+    "sharedHint": "Bei einer lokal angemeldeten CLI müssen Sie den API-Schlüssel nicht erneut eingeben. Wählen Sie diese CLI unter Engine → Agent im Assistenten. Das Speichern der API-Einstellungen prüft weder Verbindung noch Kontingent.",
+    "resumeHint": "Schließen Sie nach der Konfiguration die Einstellungen und klicken Sie erneut auf Starten oder Team erstellen. Ihre Eingabe und Mitglieder bleiben erhalten.",
+    "cliHint": "Dieser Assistent nutzt eine lokale CLI. Stellen Sie sicher, dass Sie dort angemeldet sind. Sie müssen den API-Schlüssel nicht erneut in Foundry konfigurieren.",
+    "setupTitle": "Modell-API einrichten · {{names}}"
+  },
   "health": {
     "detectedError": "Fehler beim aktuellen Agenten ({{agent}}) erkannt",
     "autoSwitching": ". Das System versucht automatisch zu wechseln.",

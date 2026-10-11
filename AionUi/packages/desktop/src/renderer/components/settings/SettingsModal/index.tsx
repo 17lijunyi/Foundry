@@ -139,6 +139,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   const resizeTimerRef = useRef<number | undefined>(undefined);
   const extensionTabs = useExtensionSettingsTabs();
 
+  useEffect(() => {
+    if (visible) setActiveTab(defaultTab);
+  }, [defaultTab, visible]);
+
   /**
    * 处理窗口尺寸变化，更新移动端状态
    * Handle window resize and update mobile state
@@ -280,7 +284,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   const [mountedExtTabs, setMountedExtTabs] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (extensionTabMap.has(activeTab)) {
+    if (visible && extensionTabMap.has(activeTab)) {
       setMountedExtTabs((prev) => {
         if (prev.has(activeTab)) return prev;
         const next = new Set(prev);
@@ -288,7 +292,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         return next;
       });
     }
-  }, [activeTab, extensionTabMap]);
+  }, [activeTab, extensionTabMap, visible]);
 
   // Reset mounted tabs when modal closes to free memory
   useEffect(() => {

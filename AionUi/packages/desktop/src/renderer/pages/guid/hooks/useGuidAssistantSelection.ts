@@ -114,12 +114,14 @@ type UseGuidAssistantSelectionOptions = {
   resetAssistant?: boolean;
   preselectAssistantId?: string;
   locationKey?: string;
+  apiModelsReady?: boolean;
 };
 
 export const useGuidAssistantSelection = ({
   resetAssistant,
   preselectAssistantId,
   locationKey,
+  apiModelsReady = true,
 }: UseGuidAssistantSelectionOptions): GuidAssistantSelectionResult => {
   const [selectedAssistantIdState, _setSelectedAssistantId] = useState<string | null>(null);
   const [selectedMode, _setSelectedMode] = useState<string>('default');
@@ -206,11 +208,13 @@ export const useGuidAssistantSelection = ({
     }
   }, [assistants, preselectAssistantId, resetAssistant, selectedAssistantIdState]);
 
-  const selectedAssistant = useMemo(
-    () =>
-      selectedAssistantIdState ? assistants.find((assistant) => assistant.id === selectedAssistantIdState) : undefined,
-    [assistants, selectedAssistantIdState]
-  );
+  const selectedAssistant = useMemo(() => {
+    const assistant = selectedAssistantIdState
+      ? assistants.find((item) => item.id === selectedAssistantIdState)
+      : undefined;
+    // Automatic and navigation-based selections need the same API configuration gate.
+    return assistant && isAionrsAssistant(assistant) && !apiModelsReady ? undefined : assistant;
+  }, [assistants, selectedAssistantIdState, apiModelsReady]);
   const selectedAssistantId = selectedAssistant?.id ?? null;
   const selectedAssistantBackend = assistantRuntimeKey(selectedAssistant);
   const selectedAssistantModels = selectedAssistant?.models ?? [];

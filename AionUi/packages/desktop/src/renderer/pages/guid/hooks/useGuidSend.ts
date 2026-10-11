@@ -55,6 +55,7 @@ export type GuidSendDeps = {
   navigate: NavigateFunction;
   t: TFunction;
   localeKey: string;
+  ensureConnection?: () => Promise<boolean>;
 };
 
 export type GuidSendResult = {
@@ -96,6 +97,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     navigate,
     t,
     localeKey,
+    ensureConnection,
   } = deps;
   const sendingRef = useRef(false);
 
@@ -103,6 +105,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     if (!selectedAssistantId) {
       return false;
     }
+    if (ensureConnection && !(await ensureConnection())) return false;
 
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || '';
@@ -287,6 +290,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     files,
     dir,
     selectedAssistantId,
+    ensureConnection,
     selectedAssistantBackend,
     selectedMode,
     selectedAcpModel,
