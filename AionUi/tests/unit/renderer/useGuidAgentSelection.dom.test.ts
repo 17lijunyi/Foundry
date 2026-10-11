@@ -115,6 +115,29 @@ describe('useGuidAssistantSelection', () => {
     });
   });
 
+  it.each([undefined, 'bare-aionrs'])(
+    'does not activate an API assistant without a usable model (preselect: %s)',
+    async (preselectAssistantId) => {
+      mockAssistants = [
+        assistantFixture({ id: 'bare-aionrs', runtimeKey: 'aionrs', source: 'generated', sortOrder: 1 }),
+      ];
+      const { result, rerender } = renderHook(
+        ({ apiModelsReady }) => useGuidAssistantSelection({ apiModelsReady, preselectAssistantId }),
+        { initialProps: { apiModelsReady: false } }
+      );
+      expect(result.current.selectedAssistantId).toBeNull();
+      expect(result.current.selectedAssistantAvailable).toBe(false);
+      rerender({ apiModelsReady: true });
+      await waitFor(() => expect(result.current.selectedAssistantId).toBe('bare-aionrs'));
+    }
+  );
+
+  it('keeps a native CLI selectable when no API models are configured', async () => {
+    const { result } = renderHook(() => useGuidAssistantSelection({ apiModelsReady: false }));
+    await waitFor(() => expect(result.current.selectedAssistantId).toBe('assistant-claude'));
+    expect(result.current.selectedAssistantAvailable).toBe(true);
+  });
+
   it('restores the last selected guid assistant when the guid page resets for a new chat', async () => {
     mockAssistants = [
       assistantFixture({ id: 'bare-aionrs', runtimeKey: 'aionrs', source: 'generated', sortOrder: 1 }),

@@ -1,4 +1,17 @@
 {
+  "connection": {
+    "title": "Connect a model before using this assistant",
+    "noApiModel": "Configure a provider, API key and model before using this assistant. You can reuse a saved connection.",
+    "modelUnavailable": "This assistant's selected model was removed or disabled. Enable it, or select an available model in the assistant's Default Configuration.",
+    "agentUnavailable": "This assistant's local Agent is not installed or cannot connect. Check its installation and sign-in configuration in Agent settings.",
+    "checkFailed": "Connection settings could not be read. Check again later. Your input and selected members will be kept.",
+    "configureApi": "Configure model API",
+    "manageAgent": "Check local Agent",
+    "sharedHint": "For a locally signed-in CLI, you do not need to enter an API key again. Select that CLI under the assistant's Engine → Agent. Saving API settings does not verify connectivity or quota.",
+    "resumeHint": "After configuring the connection, close settings and click Start or Create Team again. Your input and selected members will be kept.",
+    "cliHint": "This assistant uses a local CLI. Make sure you are signed in through that CLI; you do not need to configure its API key again in Foundry.",
+    "setupTitle": "Configure model API · {{names}}"
+  },
   "health": {
     "detectedError": "Detected error with current agent ({{agent}})",
     "autoSwitching": ". System will attempt to switch automatically.",

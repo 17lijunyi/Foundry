@@ -84,7 +84,7 @@ const SettingsPageHeader: React.FC<SettingsPageHeaderProps> = ({
                   <span
                     className={classNames(
                       'ms-6px inline-flex h-16px min-w-16px items-center justify-center rounded-999px px-5px text-10px font-500 leading-none',
-                      isActive ? 'bg-primary-1 text-primary-6' : 'bg-fill-2 text-t-quaternary'
+                      isActive ? 'bg-fill-2 text-t-primary' : 'bg-fill-2 text-t-secondary'
                     )}
                   >
                     {tab.count}

@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { assistantRuntimeKey, type AssistantDetail } from '@/common/types/agent/assistantTypes';
+import { getSelectableProviderModels } from '@renderer/hooks/agent/connection/readiness';
 
 /**
  * Resolve the `model` value a team agent should send to `POST /api/teams`.
@@ -17,6 +18,8 @@ import { assistantRuntimeKey, type AssistantDetail } from '@/common/types/agent/
  *
  * This resolver reads assistant-owned defaults first and then falls back to
  * backend-safe defaults when the selected assistant has no explicit model.
+ * API-backed assistants require an actual enabled provider model; placeholders
+ * are only valid for ACP engines that resolve their own model defaults.
  *
  * For ACP backends (claude, codex, acp) the model is resolved from the
  * agent's handshake data or cached model info so the backend receives a
@@ -30,16 +33,24 @@ export async function resolveDefaultTeamAgentModel(params: {
   const { assistant_id, assistant_backend } = params;
 
   const assistantDetail = await resolveAssistantDetail(assistant_id);
+  const backend = assistantDetail?.engine?.agent
+    ? assistantRuntimeKey({ agent: assistantDetail.engine.agent })
+    : assistant_backend;
+
+  if (backend === 'aionrs') {
+    return resolveAionrsDefaultModel(assistantDetail);
+  }
+
   if (assistantDetail) {
     const assistantModel = resolveAssistantModel(assistantDetail);
     if (assistantModel) {
       return assistantModel;
     }
 
-    return resolveBackendDefaultModel(assistantRuntimeKey({ agent: assistantDetail.engine.agent }));
+    return resolveBackendDefaultModel(backend);
   }
 
-  return resolveBackendDefaultModel(assistant_backend);
+  return resolveBackendDefaultModel(backend);
 }
 
 async function resolveAssistantDetail(assistant_id?: string): Promise<AssistantDetail | undefined> {
@@ -100,6 +111,20 @@ async function resolveGeminiDefaultModel(): Promise<string> {
   return 'auto';
 }
 
-async function resolveAionrsDefaultModel(): Promise<string> {
-  return 'default';
+async function resolveAionrsDefaultModel(detail?: AssistantDetail): Promise<string> {
+  const providers = await ipcBridge.mode.listProviders.invoke();
+  const models = getSelectableProviderModels(providers ?? []);
+  const preferredModel = detail ? resolveAssistantModel(detail) : undefined;
+  const preferred = models.find((model) => model.use_model === preferredModel);
+
+  if (detail?.defaults.model.mode === 'fixed' && !preferred) {
+    throw new Error('AIONRS_MODEL_UNAVAILABLE');
+  }
+
+  const selected = preferred ?? models[0];
+  if (!selected) {
+    throw new Error('AIONRS_NO_AVAILABLE_MODEL');
+  }
+
+  return selected.use_model;
 }

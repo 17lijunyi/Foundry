@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -21,6 +21,7 @@ const {
   resolveGuidAssistantDefaultsMock,
   sendMock,
   navigateMock,
+  ensureConnectionMock,
 } = vi.hoisted(() => ({
   modelSelectionMock: {
     modelList: [],
@@ -123,6 +124,7 @@ const {
     isButtonDisabled: false,
   },
   navigateMock: vi.fn(),
+  ensureConnectionMock: vi.fn(),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -159,6 +161,15 @@ vi.mock('@/renderer/hooks/chat/useInputFocusRing', () => ({
 
 vi.mock('@/renderer/pages/guid/hooks/useGuidModelSelection', () => ({
   useGuidModelSelection: () => modelSelectionMock,
+}));
+
+vi.mock('@/renderer/hooks/agent/connection', () => ({
+  useAssistantConnection: () => ({ ensureReady: ensureConnectionMock, dialog: null, openSetup: vi.fn() }),
+  AssistantConnectionNotice: () => null,
+}));
+
+vi.mock('@/renderer/hooks/agent/useModelProviderList', () => ({
+  useProvidersQuery: () => ({ data: undefined }),
 }));
 
 const useGuidAssistantSelectionMock = vi.fn(() => agentSelectionMock);
@@ -302,6 +313,9 @@ const guidInputCardProps = {
 
 describe('GuidPage', () => {
   beforeEach(() => {
+    ensureConnectionMock.mockReset();
+    ensureConnectionMock.mockResolvedValue(true);
+    sendMock.sendMessageHandler.mockClear();
     locationMock.state = null;
     locationMock.key = 'guid-location';
     navigateMock.mockReset();
@@ -324,6 +338,7 @@ describe('GuidPage', () => {
     agentSelectionMock.selectedAssistantBackend = 'aionrs';
     agentSelectionMock.setSelectedAcpModel.mockReset();
     agentSelectionMock.setSelectedMode.mockReset();
+    agentSelectionMock.setSelectedAssistantId.mockClear();
     agentSelectionMock.assistants = [
       {
         id: 'bare-aionrs',
@@ -346,6 +361,42 @@ describe('GuidPage', () => {
         deletable: false,
       },
     ];
+  });
+
+  it('requests API configuration when choosing an assistant before sending a message', async () => {
+    render(<GuidPage />);
+    const props = capturedAssistantSelectionAreaProps.at(-1)!;
+    await act(async () => {
+      (props.onSelectAssistant as (id: string) => void)('foundry-prd');
+    });
+    expect(ensureConnectionMock).toHaveBeenCalledWith([{ id: 'foundry-prd' }], { configureApi: true });
+    expect(sendMock.sendMessageHandler).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])('keeps the current assistant until configuration resolves (%s)', async (ready) => {
+    let finish: (ready: boolean) => void = vi.fn();
+    ensureConnectionMock.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      })
+    );
+    render(<GuidPage />);
+    agentSelectionMock.setSelectedAssistantId.mockClear();
+    const select = capturedAssistantSelectionAreaProps.at(-1)!.onSelectAssistant as (id: string) => Promise<void>;
+    let pending: Promise<void> | undefined;
+    act(() => {
+      pending = select('foundry-prd');
+      void select('foundry-prd');
+    });
+    expect(agentSelectionMock.setSelectedAssistantId).not.toHaveBeenCalled();
+    expect(ensureConnectionMock).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      finish(ready);
+      await pending;
+    });
+    if (ready) expect(agentSelectionMock.setSelectedAssistantId).toHaveBeenCalledExactlyOnceWith('foundry-prd');
+    else expect(agentSelectionMock.setSelectedAssistantId).not.toHaveBeenCalled();
+    expect(sendMock.sendMessageHandler).not.toHaveBeenCalled();
   });
 
   it('keeps the existing replace contract for ordinary Guid prefills', () => {
@@ -463,6 +514,7 @@ describe('GuidPage', () => {
     expect(useGuidAssistantSelectionMock).toHaveBeenCalledWith(
       expect.objectContaining({
         preselectAssistantId: undefined,
+        apiModelsReady: false,
       })
     );
   });

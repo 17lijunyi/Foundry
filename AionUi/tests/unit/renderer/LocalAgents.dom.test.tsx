@@ -9,7 +9,7 @@
  * derives the detected/custom sections from it.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
@@ -91,6 +91,20 @@ vi.mock('@renderer/utils/platform', async () => {
 vi.mock('@/renderer/components/base/AionModal', () => ({ default: () => null }));
 vi.mock('@renderer/pages/settings/AgentSettings/InlineAgentEditor', () => ({ default: () => null }));
 vi.mock('@renderer/pages/settings/AgentSettings/AgentHubModal', () => ({ AgentHubModal: () => null }));
+vi.mock('@/renderer/pages/settings/AgentSettings/AgentRepairPanel', () => ({
+  default: ({ agent, onSaved }: { agent: { name: string; status: string }; onSaved: () => void }) => {
+    const [draft, setDraft] = React.useState('');
+    return (
+      <div data-testid='agent-repair-panel-stub' data-status={agent.status}>
+        <span>{agent.name}</span>
+        <input aria-label='Repair draft' value={draft} onChange={(event) => setDraft(event.target.value)} />
+        <button type='button' onClick={onSaved}>
+          Save repair
+        </button>
+      </div>
+    );
+  },
+}));
 
 import LocalAgents from '@renderer/pages/settings/AgentSettings/LocalAgents';
 import AgentModalContent from '@renderer/components/settings/SettingsModal/contents/AgentModalContent';
@@ -148,6 +162,103 @@ const makeAgents = () => [
 ];
 
 describe('LocalAgents', () => {
+  beforeEach(() => {
+    navigate.mockClear();
+    messageError.mockClear();
+  });
+
+  it('keeps the page repair action navigating to its dedicated route by default', () => {
+    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn(), refreshCatalog: vi.fn() });
+    render(<LocalAgents />);
+
+    fireEvent.click(screen.getByTestId('agent-row-edit-acp-claude'));
+
+    expect(navigate).toHaveBeenCalledWith('/settings/agent/acp-claude/repair');
+  });
+
+  it('delegates repair to an embedded host instead of navigating when a callback is supplied', () => {
+    const onRepair = vi.fn();
+    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn(), refreshCatalog: vi.fn() });
+    render(<LocalAgents onRepair={onRepair} />);
+
+    fireEvent.click(screen.getByTestId('agent-row-edit-acp-claude'));
+
+    expect(onRepair).toHaveBeenCalledWith('acp-claude');
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('opens and closes native-agent repair inside the settings modal without changing routes', () => {
+    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn(), refreshCatalog: vi.fn() });
+    render(<AgentModalContent />);
+
+    fireEvent.click(screen.getByTestId('agent-row-edit-acp-claude'));
+    expect(screen.getByTestId('agent-repair-panel-stub')).toHaveAttribute('data-status', 'missing');
+    fireEvent.click(screen.getByTestId('btn-back-agent-modal-repair'));
+
+    expect(screen.getByText('Aion CLI')).toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('keeps repair edits mounted while using fresh agent statuses during catalog refresh', () => {
+    const catalog = { agents: makeAgents(), isRefreshing: false, revalidate: vi.fn(), refreshCatalog: vi.fn() };
+    useManagedAgents.mockReturnValue(catalog);
+    const { rerender } = render(<AgentModalContent />);
+    fireEvent.click(screen.getByTestId('agent-row-edit-acp-claude'));
+    fireEvent.change(screen.getByLabelText('Repair draft'), { target: { value: '/custom/claude' } });
+
+    const refreshedAgents = makeAgents();
+    refreshedAgents[1].status = 'online';
+    useManagedAgents.mockReturnValue({
+      ...catalog,
+      isRefreshing: true,
+      agents: refreshedAgents,
+    });
+    rerender(<AgentModalContent />);
+
+    expect(screen.getByTestId('agent-repair-panel-stub')).toHaveAttribute('data-status', 'online');
+    expect(screen.getByLabelText('Repair draft')).toHaveValue('/custom/claude');
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('refreshes the managed-agent and assistant catalog after an embedded repair is saved', async () => {
+    const refreshCatalog = vi.fn().mockResolvedValue(undefined);
+    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn(), refreshCatalog });
+    render(<AgentModalContent />);
+    fireEvent.click(screen.getByTestId('agent-row-edit-acp-claude'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save repair' }));
+
+    await waitFor(() => expect(refreshCatalog).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('agent-repair-panel-stub')).toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('reports an embedded connection-test failure without leaving the repair panel', async () => {
+    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn(), refreshCatalog: vi.fn() });
+    vi.mocked(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).mockRejectedValue(
+      new Error('Probe failed')
+    );
+    render(<AgentModalContent />);
+    fireEvent.click(screen.getByTestId('agent-row-edit-acp-claude'));
+    fireEvent.click(screen.getByTestId('btn-test-connection-agent-modal-repair'));
+
+    await waitFor(() => expect(messageError).toHaveBeenCalledWith('settings.agentManagement.testConnectionError'));
+    expect(screen.getByTestId('agent-repair-panel-stub')).toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('returns to the in-place agent list when the repaired agent disappears after refresh', async () => {
+    const catalog = { agents: makeAgents(), isRefreshing: false, revalidate: vi.fn(), refreshCatalog: vi.fn() };
+    useManagedAgents.mockReturnValue(catalog);
+    const { rerender } = render(<AgentModalContent />);
+    fireEvent.click(screen.getByTestId('agent-row-edit-acp-claude'));
+
+    useManagedAgents.mockReturnValue({ ...catalog, agents: [] });
+    rerender(<AgentModalContent />);
+
+    await waitFor(() => expect(screen.getByText('settings.agentManagement.localAgentsEmpty')).toBeInTheDocument());
+    expect(screen.queryByTestId('agent-repair-panel-stub')).not.toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalled();
+  });
   it('runs the health probe and shows a success toast after an official-agent test connection succeeds', async () => {
     const refreshCatalog = vi.fn().mockResolvedValue(undefined);
     useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn(), refreshCatalog });

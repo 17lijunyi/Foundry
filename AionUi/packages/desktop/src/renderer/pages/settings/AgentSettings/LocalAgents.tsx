@@ -34,7 +34,11 @@ import {
 
 const LOCAL_AGENT_SETUP_GUIDE_URL = 'https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup';
 
-const LocalAgents: React.FC = () => {
+type LocalAgentsProps = {
+  onRepair?: (agentId: string) => void;
+};
+
+const LocalAgents: React.FC<LocalAgentsProps> = ({ onRepair }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const layout = useLayoutContext();
@@ -155,9 +159,10 @@ const LocalAgents: React.FC = () => {
 
   const openAgentConfig = useCallback(
     (agentId: string) => {
-      navigate(`/settings/agent/${agentId}/repair`);
+      if (onRepair) onRepair(agentId);
+      else navigate(`/settings/agent/${agentId}/repair`);
     },
-    [navigate]
+    [navigate, onRepair]
   );
 
   // Manual "test connection": runs the live ACP probe (initialize +

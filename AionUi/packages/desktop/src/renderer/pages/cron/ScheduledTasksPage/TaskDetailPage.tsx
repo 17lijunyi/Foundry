@@ -49,6 +49,7 @@ const TaskDetailPage: React.FC = () => {
   // can both pass a state-based check before the first re-render disables the
   // button. The ref blocks the second invocation immediately.
   const runningNowRef = useRef(false);
+  const jobRequestRef = useRef(0);
 
   const isNewConversationMode = job?.target.execution_mode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
@@ -71,19 +72,29 @@ const TaskDetailPage: React.FC = () => {
 
   const fetchJob = useCallback(async () => {
     if (!job_id) return;
+    const request = ++jobRequestRef.current;
     setLoading(true);
     try {
       const found = await ipcBridge.cron.getJob.invoke({ job_id });
-      setJob(found ? await repairCronJobTimeZone(found) : null);
+      const repaired = found ? await repairCronJobTimeZone(found) : null;
+      if (request === jobRequestRef.current) setJob(repaired);
     } catch (err) {
       console.error('[TaskDetailPage] Failed to fetch job:', err);
+      if (request === jobRequestRef.current) setJob(null);
     } finally {
-      setLoading(false);
+      if (request === jobRequestRef.current) setLoading(false);
     }
   }, [job_id]);
 
   useEffect(() => {
+    setJob(null);
+    setEditDialogVisible(false);
+    setHistoryBatchMode(false);
+    setSelectedConversationIds(new Set());
     void fetchJob();
+    return () => {
+      jobRequestRef.current++;
+    };
   }, [fetchJob]);
 
   // Auto-refresh when the job is updated or executed

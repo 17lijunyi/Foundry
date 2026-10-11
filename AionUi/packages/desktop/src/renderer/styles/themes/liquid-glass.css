@@ -24,6 +24,7 @@ body {
   --glass-muted: #64717b;
   --text-primary: var(--glass-ink);
   --text-secondary: #53616d;
+  --text-tertiary: var(--glass-muted);
   --color-text-1: var(--glass-ink);
   --color-text-2: #53616d;
   --color-text-3: var(--glass-muted);
@@ -80,9 +81,9 @@ body[arco-theme='dark'] {
     inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 rgb(255 255 255 / 7%), inset 1px 0 0 rgb(255 255 255 / 8%);
   --glass-focus: #afd6e3;
   --glass-ink: #f0f3f5;
-  --glass-muted: #b2bec7;
-  --text-secondary: #c4cdd4;
-  --color-text-2: #c4cdd4;
+  --glass-muted: #c9d4dc;
+  --text-secondary: #d9e1e7;
+  --color-text-2: var(--text-secondary);
   --color-text-4: #8898a5;
   --color-fill-1: rgb(255 255 255 / 4%);
   --message-user-bg: rgb(202 221 239 / 14%);

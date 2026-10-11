@@ -203,6 +203,27 @@ describe('CreateTaskDialog', () => {
     });
   });
 
+  it.each(['*/15 9-18 * * MON-FRI', '0 */2 * * MON', '0 9 * * MON,WED', '0 9 * * 1-5', '0 0 9 * * *'])(
+    'preserves the existing custom schedule when editing %s',
+    async (expr) => {
+      const user = userEvent.setup();
+      const editJob = job();
+      editJob.schedule = { kind: 'cron', expr, tz: 'Asia/Shanghai', description: expr };
+
+      render(<CreateTaskDialog visible onClose={() => {}} editJob={editJob} />);
+
+      expect(await screen.findByTestId('cron-frequency-select')).toHaveTextContent('cron.page.freq.custom');
+      await user.click(screen.getByTestId('modal-ok'));
+
+      await waitFor(() =>
+        expect(ipcBridge.cron.updateJob.invoke).toHaveBeenCalledWith({
+          job_id: editJob.id,
+          updates: expect.objectContaining({ schedule: expect.objectContaining({ expr }) }),
+        })
+      );
+    }
+  );
+
   it('does not save advanced mode without a cron expression', async () => {
     const user = userEvent.setup();
 

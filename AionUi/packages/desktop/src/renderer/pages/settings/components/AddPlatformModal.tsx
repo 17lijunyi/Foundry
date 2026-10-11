@@ -12,7 +12,7 @@ import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import { Form, Input, Message, Select, Switch } from '@arco-design/web-react';
 import { Loading, PreviewOpen, Refresh, Search } from '@icon-park/react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
 import useProtocolDetection from '@renderer/hooks/system/useProtocolDetection';
@@ -202,9 +202,11 @@ const renderPlatformOption = (platform: PlatformConfig, t?: (key: string) => str
 };
 
 const AddPlatformModal = ModalHOC<{
-  onSubmit: (platform: IProvider) => void;
+  onSubmit: (platform: IProvider) => void | Promise<void>;
   deepLinkData?: DeepLinkAddProviderDetail;
-}>(({ modalProps, onSubmit, modalCtrl, deepLinkData }) => {
+  initialPlatformValue?: string;
+  headerTitle?: string;
+}>(({ modalProps, onSubmit, modalCtrl, deepLinkData, initialPlatformValue, headerTitle }) => {
   const [message, messageContext] = Message.useMessage();
   const { t } = useTranslation();
   const [form] = Form.useForm();
@@ -234,6 +236,8 @@ const AddPlatformModal = ModalHOC<{
   const [imageInput, setImageInput] = useState<ModelImageInputChoice>('auto');
   const [openAiApiMode, setOpenAiApiMode] = useState<ModelOpenAiApiModeChoice>('auto');
   const [isFullUrl, setIsFullUrl] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const showOpenAiApiMode = supportsOpenAiApiMode(platform, modelProtocol);
 
   // Auto-detect protocol when model changes (for new-api platforms). The model
@@ -318,10 +322,14 @@ const AddPlatformModal = ModalHOC<{
         if (deepLinkData.base_url) form.setFieldValue('base_url', deepLinkData.base_url);
         if (deepLinkData.api_key) form.setFieldValue('api_key', deepLinkData.api_key);
       } else {
-        form.setFieldValue('platform', DEFAULT_PLATFORM_VALUE);
+        const initialPlatform = getPlatformByValue(initialPlatformValue ?? DEFAULT_PLATFORM_VALUE);
+        form.setFieldValue('platform', initialPlatform?.value ?? DEFAULT_PLATFORM_VALUE);
+        form.setFieldValue('base_url', initialPlatform?.base_url ?? '');
+        form.setFieldValue('model', initialPlatform?.defaultModels?.slice(0, 1) ?? []);
+        setOpenAiApiMode(initialPlatform?.openAiApiMode ?? 'auto');
       }
     }
-  }, [modalProps.visible, deepLinkData]);
+  }, [modalProps.visible, deepLinkData, initialPlatformValue]);
 
   useEffect(() => {
     if (platform?.includes('gemini')) {
@@ -338,9 +346,13 @@ const AddPlatformModal = ModalHOC<{
   }, [modelListState.data?.fix_base_url, form]);
 
   const handleSubmit = () => {
+    if (submittingRef.current) return;
+    // Validation is asynchronous too; lock before it starts to prevent duplicate saves.
+    submittingRef.current = true;
+    setSubmitting(true);
     form
       .validate()
-      .then((values) => {
+      .then(async (values) => {
         // 如果有 i18nKey 使用翻译后的名称，否则使用 platform 的 name
         // If i18nKey exists use translated name, otherwise use platform name
         const name = selectedPlatform?.i18nKey
@@ -353,7 +365,7 @@ const AddPlatformModal = ModalHOC<{
           // 优先使用用户输入的 base_url，否则使用平台预设值
           // Prefer user input base_url, fallback to platform preset
           base_url: isBedrock ? '' : values.base_url || selectedPlatform?.base_url || '',
-          api_key: isBedrock ? '' : values.api_key,
+          api_key: isBedrock ? '' : values.api_key.trim(),
           // The model Select is multi-select: values.model is a string[], but
           // keep the single-value fallback for safety.
           models: Array.isArray(values.model) ? values.model : [values.model],
@@ -393,11 +405,15 @@ const AddPlatformModal = ModalHOC<{
           showOpenAiApiMode ? openAiApiMode : 'auto'
         );
 
-        onSubmit(provider);
+        await onSubmit(provider);
         modalCtrl.close();
       })
       .catch(() => {
-        // validation failed
+        // Validation or persistence failed. The form stays open for correction.
+      })
+      .finally(() => {
+        submittingRef.current = false;
+        setSubmitting(false);
       });
   };
 
@@ -405,11 +421,16 @@ const AddPlatformModal = ModalHOC<{
     <AionModal
       variant='standard'
       visible={modalProps.visible}
-      onCancel={modalCtrl.close}
-      header={{ title: t('settings.addModel'), showClose: true }}
+      onCancel={() => {
+        if (!submittingRef.current) modalCtrl.close();
+      }}
+      header={{ title: headerTitle ?? t('settings.addModel'), showClose: !submitting }}
+      wrapStyle={modalProps.wrapStyle}
+      maskStyle={modalProps.maskStyle}
+      className={modalProps.className}
       style={{ maxWidth: '92vw' }}
       onOk={handleSubmit}
-      confirmLoading={modalProps.confirmLoading}
+      confirmLoading={submitting || modalProps.confirmLoading}
       okText={t('common.confirm')}
       cancelText={t('common.cancel')}
     >
@@ -418,7 +439,7 @@ const AddPlatformModal = ModalHOC<{
         <Form form={form} layout='vertical' className='[&_.arco-form-item]:mb-12px [&_.arco-form-item:last-child]:mb-0'>
           {/* 模型平台选择（第一层）/ Model Platform Selection (first level) */}
           <Form.Item
-            initialValue={DEFAULT_PLATFORM_VALUE}
+            initialValue={initialPlatformValue ?? DEFAULT_PLATFORM_VALUE}
             label={t('settings.modelPlatform')}
             field={'platform'}
             required
@@ -436,7 +457,8 @@ const AddPlatformModal = ModalHOC<{
                 if (plat) {
                   // model is a multi-select field — reset to an empty array, not
                   // '' (which would surface as a stray empty tag).
-                  form.setFieldValue('model', []);
+                  form.setFieldValue('model', plat.defaultModels?.slice(0, 1) ?? []);
+                  setOpenAiApiMode(plat.openAiApiMode ?? 'auto');
                   // Prefill the platform's default Base URL so users can see and
                   // edit it. Custom / New API have no preset — clear the field so
                   // it doesn't carry over the previously selected platform's URL.
@@ -487,6 +509,7 @@ const AddPlatformModal = ModalHOC<{
             rules={[{ required: isCustom || isNewApi }]}
           >
             <Input
+              data-testid='provider-api-endpoint'
               placeholder={
                 isFullUrl
                   ? 'https://your-api-endpoint.com/v1/chat/completions'
@@ -523,7 +546,10 @@ const AddPlatformModal = ModalHOC<{
             hidden={isBedrock}
             label={t('settings.apiKey')}
             required={!isBedrock}
-            rules={[{ required: !isBedrock }]}
+            rules={[
+              { required: !isBedrock, message: t('settings.pleaseEnterApiKey') },
+              { match: isBedrock ? undefined : /\S/, message: t('settings.pleaseEnterApiKey') },
+            ]}
             field={'api_key'}
             extra={
               <div className='space-y-2px'>
@@ -540,7 +566,8 @@ const AddPlatformModal = ModalHOC<{
               </div>
             }
           >
-            <Input
+            <Input.Password
+              visibilityToggle
               onBlur={() => {
                 void modelListState.mutate();
               }}
@@ -712,7 +739,18 @@ const AddPlatformModal = ModalHOC<{
                   />
                 )
               }
-              options={isFullUrl ? [] : modelListState.data?.models || []}
+              options={
+                isFullUrl
+                  ? []
+                  : [
+                      ...new Map(
+                        [
+                          ...(selectedPlatform?.defaultModels ?? []).map((model) => ({ label: model, value: model })),
+                          ...(modelListState.data?.models ?? []),
+                        ].map((model) => [model.value, model])
+                      ).values(),
+                    ]
+              }
             />
           </Form.Item>
 
