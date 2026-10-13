@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 
-import { abortUpload, abortUploads, trackUpload } from '@/renderer/hooks/file/useUploadState';
+import { abortUpload, abortUploads, trackUpload, trackUploadBatch } from '@/renderer/hooks/file/useUploadState';
 
 describe('useUploadState abort wiring', () => {
   it('invokes onAbort exactly once when abortUpload is called', () => {
@@ -84,5 +84,29 @@ describe('useUploadState abort wiring', () => {
 
     sendbox.finish();
     workspace.finish();
+  });
+
+  it('cancels pending batches even between their individual uploads', () => {
+    const pending = trackUploadBatch('sendbox', 'old');
+    const completed = trackUploadBatch('sendbox', 'old');
+    completed.finish();
+
+    abortUploads({ conversationId: 'old' });
+
+    expect(pending.signal.aborted).toBe(true);
+    expect(completed.signal.aborted).toBe(false);
+    pending.finish();
+  });
+
+  it('scopes batch cancellation to the unbound conversation bucket', () => {
+    const unbound = trackUploadBatch('sendbox');
+    const bound = trackUploadBatch('sendbox', 'current');
+
+    abortUploads({ conversationId: null });
+
+    expect(unbound.signal.aborted).toBe(true);
+    expect(bound.signal.aborted).toBe(false);
+    unbound.finish();
+    bound.finish();
   });
 });

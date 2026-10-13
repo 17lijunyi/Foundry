@@ -5,7 +5,7 @@
  */
 
 import { getBaseUrl } from '@/common/adapter/httpBridge';
-import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
+import { trackUpload, trackUploadBatch, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 
 /** Sentinel error message used when an upload is cancelled by the caller. */
 export const UPLOAD_ABORTED_ERROR = 'Upload aborted';
@@ -317,50 +317,61 @@ class FileServiceClass {
     source: UploadSource = 'sendbox'
   ): Promise<FileMetadata[]> {
     const processedFiles: FileMetadata[] = [];
+    const batch = trackUploadBatch(source, conversation_id || undefined);
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    try {
+      for (let i = 0; i < files.length; i++) {
+        if (batch.signal.aborted) return [];
+        const file = files[i];
 
-      // Each upload owns its own AbortController; the tracker exposes an `abort()`
-      // that triggers the signal so user-driven cancel and conversation-switch
-      // bulk-abort go through the same path.
-      const controller = new AbortController();
-      const tracker = trackUpload(file.size, {
-        source,
-        name: file.name,
-        conversationId: conversation_id || undefined,
-        onAbort: () => controller.abort(),
-      });
-      let file_path = '';
-      try {
-        file_path = await uploadFileViaHttp(file, conversation_id || '', tracker.onProgress, undefined, {
-          signal: controller.signal,
+        // Single-file cancel only stops this request. Scope cancellation also
+        // stops the batch, including queued files and previously collected results.
+        const controller = new AbortController();
+        const abortCurrentUpload = () => controller.abort();
+        batch.signal.addEventListener('abort', abortCurrentUpload, { once: true });
+        const tracker = trackUpload(file.size, {
+          source,
+          name: file.name,
+          conversationId: conversation_id || undefined,
+          onAbort: abortCurrentUpload,
         });
-      } catch (error) {
-        // Re-throw size errors so caller can show user-facing toast
-        if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
-          throw error;
-        }
-        if (error instanceof Error && error.message === UPLOAD_ABORTED_ERROR) {
-          // User-initiated abort: drop this file silently (the UI already reflects it).
+        let file_path = '';
+        try {
+          file_path = await uploadFileViaHttp(file, conversation_id || '', tracker.onProgress, undefined, {
+            signal: controller.signal,
+          });
+        } catch (error) {
+          if (batch.signal.aborted) return [];
+          // Re-throw size errors so caller can show user-facing toast.
+          if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
+            throw error;
+          }
+          if (error instanceof Error && error.message === UPLOAD_ABORTED_ERROR) {
+            // A single-file cancellation leaves the remaining files available.
+            continue;
+          }
+          console.error('Failed to upload file:', error);
           continue;
+        } finally {
+          batch.signal.removeEventListener('abort', abortCurrentUpload);
+          tracker.finish();
         }
-        console.error('Failed to upload file:', error);
-        continue;
-      } finally {
-        tracker.finish();
+
+        // The response may finish immediately before navigation cancels the scope.
+        if (batch.signal.aborted) return [];
+        processedFiles.push({
+          name: file.name,
+          path: file_path,
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+        });
       }
 
-      processedFiles.push({
-        name: file.name,
-        path: file_path,
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified,
-      });
+      return processedFiles;
+    } finally {
+      batch.finish();
     }
-
-    return processedFiles;
   }
 }
 

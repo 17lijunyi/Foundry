@@ -52,6 +52,8 @@ interface UploadEntry {
 
 let nextId = 0;
 const uploads = new Map<number, UploadEntry>();
+type UploadBatch = Pick<UploadEntry, 'source' | 'conversationId'> & { controller: AbortController };
+const uploadBatches = new Set<UploadBatch>();
 const listeners = new Set<() => void>();
 
 let globalSnapshot: UploadStateSnapshot = { activeCount: 0, isUploading: false, overallPercent: 0 };
@@ -211,6 +213,42 @@ export interface AbortUploadsFilter {
 }
 
 /**
+ * Bind a sequential upload batch to its UI scope. Bulk cancellation stops the
+ * queued files too; cancelling a single upload leaves its batch running.
+ * Call finish in finally, even when every file fails or the batch is empty.
+ */
+export function trackUploadBatch(
+  source: UploadSource,
+  conversationId?: string
+): { signal: AbortSignal; finish: () => void } {
+  const batch: UploadBatch = { source, conversationId, controller: new AbortController() };
+  uploadBatches.add(batch);
+  return {
+    signal: batch.controller.signal,
+    finish: () => {
+      uploadBatches.delete(batch);
+    },
+  };
+}
+
+function matchesUploadFilter(
+  entry: Pick<UploadEntry, 'source' | 'conversationId'>,
+  filter: AbortUploadsFilter
+): boolean {
+  if (filter.source && entry.source !== filter.source) return false;
+  if (filter.conversationId !== undefined && entry.conversationId !== (filter.conversationId ?? undefined)) {
+    return false;
+  }
+  if (
+    filter.exceptConversationId !== undefined &&
+    entry.conversationId === (filter.exceptConversationId ?? undefined)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Bulk-cancel uploads matching the filter.
  *
  * - No filter: aborts everything.
@@ -223,19 +261,10 @@ export interface AbortUploadsFilter {
  */
 export function abortUploads(filter: AbortUploadsFilter = {}): void {
   // Snapshot first because abort() will eventually call finish() and mutate the map.
-  const targets: UploadEntry[] = [];
-  for (const entry of uploads.values()) {
-    if (filter.source && entry.source !== filter.source) continue;
-    if (filter.conversationId !== undefined && entry.conversationId !== (filter.conversationId ?? undefined)) {
-      continue;
-    }
-    if (
-      filter.exceptConversationId !== undefined &&
-      entry.conversationId === (filter.exceptConversationId ?? undefined)
-    ) {
-      continue;
-    }
-    targets.push(entry);
+  const batches = Array.from(uploadBatches).filter((entry) => matchesUploadFilter(entry, filter));
+  const targets = Array.from(uploads.values()).filter((entry) => matchesUploadFilter(entry, filter));
+  for (const batch of batches) {
+    batch.controller.abort();
   }
   for (const entry of targets) {
     entry.abort();

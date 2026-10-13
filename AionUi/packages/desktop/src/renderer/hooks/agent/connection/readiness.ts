@@ -50,10 +50,12 @@ export function getAssistantConnectionIssue(
   if (backend !== 'aionrs') return null;
   const models = getSelectableProviderModels(providers);
   if (models.length === 0) return issue('noApiModel');
+  // Auto-mode history is a preference, not a binding. Model selection can fall
+  // back to an available model when that history is stale.
   const modelId =
     selection?.model?.use_model ||
     selection?.modelId ||
-    (detail.defaults.model.mode === 'fixed' ? detail.defaults.model.value : detail.preferences.last_model_id);
+    (detail.defaults.model.mode === 'fixed' ? detail.defaults.model.value : undefined);
   if (
     modelId &&
     !models.some((model) => model.use_model === modelId && (!selection?.model || model.id === selection.model.id))

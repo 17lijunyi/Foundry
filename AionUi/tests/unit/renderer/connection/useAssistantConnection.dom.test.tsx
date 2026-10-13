@@ -428,6 +428,20 @@ describe('assistant connection gate', () => {
     });
     expect(mocks.listProviders).not.toHaveBeenCalled();
   });
+
+  it('allows choosing an automatic-model assistant after its remembered model is removed', async () => {
+    const detail = assistant();
+    detail.preferences.last_model_id = 'removed-model';
+    mocks.getAssistant.mockResolvedValue(detail);
+    mocks.listProviders.mockResolvedValue([provider()]);
+    render(<StartHarness />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select assistant' }));
+
+    await waitFor(() => expect(mocks.selectAssistant).toHaveBeenCalledExactlyOnceWith('foundry-prd'));
+    expect(screen.queryByRole('heading', { name: 'agent.connection.setupTitle' })).not.toBeInTheDocument();
+    expect(mocks.createProvider).not.toHaveBeenCalled();
+  });
 });
 
 describe('in-place connection setup and resume', () => {
@@ -496,6 +510,40 @@ describe('in-place connection setup and resume', () => {
     expect(mocks.listProviders).toHaveBeenCalledTimes(2);
     expect(mocks.createConversation).not.toHaveBeenCalled();
   });
+
+  it.each(['cancel', 'close', 'escape'] as const)(
+    'keeps the connection prompt closed when a retry finishes after %s',
+    async (action) => {
+      let finishRetry: ((providers: IProvider[]) => void) | undefined;
+      mocks.listProviders.mockResolvedValueOnce([]).mockReturnValueOnce(
+        new Promise<IProvider[]>((resolve) => {
+          finishRetry = resolve;
+        })
+      );
+      render(<StartHarness />);
+      fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'common.retry' }));
+      await waitFor(() => expect(mocks.listProviders).toHaveBeenCalledTimes(2));
+
+      if (action === 'escape') {
+        fireEvent.keyDown(screen.getByRole('button', { name: 'common.cancel' }), { key: 'Escape', code: 'Escape' });
+      } else {
+        fireEvent.click(
+          action === 'cancel'
+            ? screen.getByRole('button', { name: 'common.cancel' })
+            : document.querySelector<HTMLButtonElement>('button[aria-label="Close"]')!
+        );
+      }
+      await waitFor(() => expect(screen.getByTestId('assistant-connection-dialog')).not.toBeVisible());
+
+      await act(async () => {
+        finishRetry?.([]);
+      });
+
+      expect(screen.getByTestId('assistant-connection-dialog')).not.toBeVisible();
+      expect(mocks.createConversation).not.toHaveBeenCalled();
+    }
+  );
 
   it('shows inline guidance only while a connection issue exists', () => {
     const onConfigure = vi.fn();

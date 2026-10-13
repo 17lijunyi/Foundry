@@ -17,7 +17,6 @@ vi.mock('@/common', () => ({
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 import GuidWorkspaceFootnote from '@/renderer/pages/guid/components/GuidWorkspaceFootnote';
-import { DEFAULT_RECENT_WS_KEY } from '@/renderer/components/workspace/recentWorkspaces';
 
 const StatefulFootnote = ({ initialValue = '' }: { initialValue?: string }) => {
   const [workspaceDir, setWorkspaceDir] = useState(initialValue);
@@ -37,7 +36,7 @@ describe('Homepage project folder selection', () => {
   });
 
   it('opens the native picker from both the empty and selected states despite recent history', async () => {
-    localStorage.setItem(DEFAULT_RECENT_WS_KEY, JSON.stringify(['/projects/recent']));
+    localStorage.setItem('aionui:recent-workspaces', JSON.stringify(['/projects/recent']));
     showOpenMock.mockResolvedValueOnce(['/projects/first']).mockResolvedValueOnce(['/projects/second']);
     render(<StatefulFootnote />);
 

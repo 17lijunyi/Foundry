@@ -239,6 +239,34 @@ describe('CreateTaskDialog', () => {
     expect(ipcBridge.cron.updateJob.invoke).not.toHaveBeenCalled();
   });
 
+  it('saves only once when the save button is clicked again during validation', async () => {
+    vi.mocked(ipcBridge.cron.updateJob.invoke).mockReturnValueOnce(new Promise(() => {}));
+    render(<CreateTaskDialog visible onClose={() => {}} editJob={job()} />);
+    const saveButton = await screen.findByTestId('modal-ok');
+
+    await act(async () => {
+      fireEvent.click(saveButton);
+      fireEvent.click(saveButton);
+    });
+
+    expect(ipcBridge.cron.updateJob.invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows retrying the task save after a failed request', async () => {
+    vi.mocked(ipcBridge.cron.updateJob.invoke)
+      .mockRejectedValueOnce(new Error('request failed'))
+      .mockResolvedValueOnce(job());
+    const onClose = vi.fn();
+    render(<CreateTaskDialog visible onClose={onClose} editJob={job()} />);
+
+    fireEvent.click(await screen.findByTestId('modal-ok'));
+    await waitFor(() => expect(ipcBridge.cron.updateJob.invoke).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(ipcBridge.cron.updateJob.invoke).toHaveBeenCalledTimes(2);
+  });
+
   it('does not reset edited prompt text when the assistant catalog refreshes in edit mode', async () => {
     const user = userEvent.setup();
     const editJob = job();

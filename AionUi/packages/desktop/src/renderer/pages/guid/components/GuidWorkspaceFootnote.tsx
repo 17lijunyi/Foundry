@@ -5,7 +5,6 @@
  */
 
 import { ipcBridge } from '@/common';
-import { addRecentWorkspace } from '@/renderer/components/workspace';
 import { Button, Tooltip } from '@arco-design/web-react';
 import { Close, FolderOpen } from '@icon-park/react';
 import React, { useCallback, useRef } from 'react';
@@ -36,7 +35,6 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
         ...(workspaceDir ? { defaultPath: workspaceDir } : {}),
       });
       if (dirs?.[0]) {
-        addRecentWorkspace(dirs[0]);
         onSelectWorkspace(dirs[0]);
       }
     } catch (error) {

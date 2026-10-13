@@ -102,10 +102,10 @@ describe('assistant connection configuration', () => {
     expect(getAssistantConnectionIssue(detail, [provider()])?.kind).toBe('modelUnavailable');
   });
 
-  it('surfaces a remembered assistant model that is no longer configured', () => {
+  it('allows automatic model selection to recover from a stale remembered model', () => {
     const detail = assistant();
     detail.preferences.last_model_id = 'removed-model';
-    expect(getAssistantConnectionIssue(detail, [provider()])?.kind).toBe('modelUnavailable');
+    expect(getAssistantConnectionIssue(detail, [provider()])).toBeNull();
   });
 
   it('allows a current explicit selection to replace a stale remembered model', () => {

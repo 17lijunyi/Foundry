@@ -17,14 +17,11 @@ vi.mock('@/common', () => ({
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 import WorkspaceFolderSelect from '@/renderer/components/workspace/WorkspaceFolderSelect';
-import { DEFAULT_RECENT_WS_KEY } from '@/renderer/components/workspace/recentWorkspaces';
 
 const props = {
   placeholder: 'Choose folder',
-  recentLabel: 'Recent folders',
   chooseDifferentLabel: 'Choose another folder',
   triggerTestId: 'folder-select',
-  menuTestId: 'recent-folder-menu',
 };
 
 const StatefulPicker = ({ initialValue = '' }: { initialValue?: string }) => {
@@ -56,7 +53,7 @@ describe('WorkspaceFolderSelect native folder selection', () => {
   });
 
   it('opens the native picker with persisted history and leaves the selection unchanged on cancellation', async () => {
-    localStorage.setItem(DEFAULT_RECENT_WS_KEY, JSON.stringify(['/projects/recent']));
+    localStorage.setItem('aionui:recent-workspaces', JSON.stringify(['/projects/recent']));
     showOpenMock.mockResolvedValue(undefined);
     const onChange = vi.fn();
     render(<WorkspaceFolderSelect {...props} onChange={onChange} />);
