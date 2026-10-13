@@ -10,7 +10,7 @@ import type { ICronJob } from '@/common/adapter/ipcBridge';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Button, Tooltip } from '@arco-design/web-react';
 import { AlarmClock } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useCronJobs } from '../useCronJobs';
@@ -35,10 +35,12 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversation_id, cron_j
   // For child conversations spawned by a cron job, fetch the job directly by ID
   const [directJob, setDirectJob] = useState<ICronJob | null>(null);
   const [directLoading, setDirectLoading] = useState(!!cron_job_id);
+  const directRequestSeqRef = useRef(0);
 
   useEffect(() => {
+    const requestSeq = ++directRequestSeqRef.current;
+    setDirectJob(null);
     if (!cron_job_id) {
-      setDirectJob(null);
       setDirectLoading(false);
       return;
     }
@@ -46,9 +48,19 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversation_id, cron_j
     setDirectLoading(true);
     ipcBridge.cron.getJob
       .invoke({ job_id: cron_job_id })
-      .then((job) => setDirectJob(job ?? null))
-      .catch(() => setDirectJob(null))
-      .finally(() => setDirectLoading(false));
+      .then((job) => {
+        if (directRequestSeqRef.current === requestSeq) setDirectJob(job ?? null);
+      })
+      .catch(() => {
+        if (directRequestSeqRef.current === requestSeq) setDirectJob(null);
+      })
+      .finally(() => {
+        if (directRequestSeqRef.current === requestSeq) setDirectLoading(false);
+      });
+
+    return () => {
+      directRequestSeqRef.current += 1;
+    };
   }, [cron_job_id]);
 
   useEffect(() => {
@@ -56,18 +68,21 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversation_id, cron_j
 
     const unsubCreated = ipcBridge.cron.onJobCreated.on((created) => {
       if (created.id === cron_job_id) {
+        directRequestSeqRef.current += 1;
         setDirectJob(created);
         setDirectLoading(false);
       }
     });
     const unsubUpdated = ipcBridge.cron.onJobUpdated.on((updated) => {
       if (updated.id === cron_job_id) {
+        directRequestSeqRef.current += 1;
         setDirectJob(updated);
         setDirectLoading(false);
       }
     });
     const unsubRemoved = ipcBridge.cron.onJobRemoved.on(({ job_id }) => {
       if (job_id === cron_job_id) {
+        directRequestSeqRef.current += 1;
         setDirectJob(null);
         setDirectLoading(false);
       }

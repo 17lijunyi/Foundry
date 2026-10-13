@@ -9,19 +9,14 @@ import { Button } from '@arco-design/web-react';
 import { Close, FolderOpen } from '@icon-park/react';
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DEFAULT_RECENT_WS_KEY, addRecentWorkspace } from './recentWorkspaces';
 
 type WorkspaceFolderSelectProps = {
   value?: string;
   onChange: (value: string) => void;
   onClear?: () => void;
   placeholder: string;
-  recentLabel: string;
   chooseDifferentLabel: string;
-  recentStorageKey?: string;
   triggerTestId?: string;
-  menuTestId?: string;
-  menuZIndex?: number;
 };
 
 const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
@@ -30,7 +25,6 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
   onClear,
   placeholder,
   chooseDifferentLabel,
-  recentStorageKey = DEFAULT_RECENT_WS_KEY,
   triggerTestId,
 }) => {
   const { t } = useTranslation();
@@ -46,7 +40,6 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
         ...(value ? { defaultPath: value } : {}),
       });
       if (files?.[0]) {
-        addRecentWorkspace(files[0], recentStorageKey);
         onChange(files[0]);
       }
     } catch (error) {

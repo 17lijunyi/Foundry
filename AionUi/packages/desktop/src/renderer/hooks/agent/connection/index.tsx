@@ -125,10 +125,10 @@ export function useAssistantConnection() {
 
   const openSetup = useCallback(
     (tab: 'model' | 'agent') => {
-      setIssues([]);
+      cancelPending();
       openSettings(tab);
     },
-    [openSettings]
+    [cancelPending, openSettings]
   );
   const hasApiIssue = issues.some((issue) => issue.kind === 'noApiModel' || issue.kind === 'modelUnavailable');
   const hasAgentIssue = issues.some((issue) => issue.kind === 'agentUnavailable');
@@ -183,13 +183,13 @@ export function useAssistantConnection() {
       <AionModal
         variant='standard'
         visible={issues.length > 0}
-        onCancel={() => setIssues([])}
+        onCancel={cancelPending}
         header={{ title: t('agent.connection.title'), showClose: true }}
         wrapStyle={{ zIndex: 10020 }}
         maskStyle={{ zIndex: 10019 }}
         footer={
           <div className='flex flex-wrap justify-end gap-8px'>
-            <Button onClick={() => setIssues([])}>{t('common.cancel')}</Button>
+            <Button onClick={cancelPending}>{t('common.cancel')}</Button>
             <Button loading={checking} onClick={() => void ensureReady(lastRequestsRef.current)}>
               {t('common.retry')}
             </Button>

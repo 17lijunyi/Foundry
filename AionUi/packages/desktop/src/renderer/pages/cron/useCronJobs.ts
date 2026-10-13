@@ -127,6 +127,18 @@ function useCronJobSubscription(handlers: CronJobEventHandlers) {
   }, [handlers.onJobCreated, handlers.onJobUpdated, handlers.onJobRemoved]);
 }
 
+const mergePendingJobChanges = (jobs: ICronJob[], changes: Map<string, ICronJob | null>): ICronJob[] => {
+  const jobsById = new Map(jobs.map((job) => [job.id, job]));
+  for (const [id, job] of changes) {
+    if (job) {
+      jobsById.set(id, job);
+    } else {
+      jobsById.delete(id);
+    }
+  }
+  return [...jobsById.values()];
+};
+
 /**
  * Hook for managing cron jobs for a specific conversation
  * @param conversation_id - The conversation ID to fetch jobs for
@@ -135,31 +147,53 @@ export function useCronJobs(conversation_id?: string) {
   const [jobs, setJobs] = useState<ICronJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const requestSeqRef = useRef(0);
+  const pendingChangesRef = useRef<Map<string, ICronJob | null> | null>(null);
 
   // Fetch jobs for the conversation
   const fetchJobs = useCallback(async () => {
+    const requestSeq = ++requestSeqRef.current;
+    const pendingChanges = new Map<string, ICronJob | null>();
+    pendingChangesRef.current = pendingChanges;
+    setError(null);
     if (!conversation_id) {
+      pendingChangesRef.current = null;
       setJobs([]);
+      setLoading(false);
       return;
     }
 
     setLoading(true);
-    setError(null);
 
     try {
       const result = await ipcBridge.cron.listJobsByConversation.invoke({ conversation_id });
-      setJobs(await repairCronJobTimeZones(result || []));
+      if (requestSeqRef.current !== requestSeq) return;
+      const repairedJobs = await repairCronJobTimeZones(mergePendingJobChanges(result || [], pendingChanges));
+      if (requestSeqRef.current === requestSeq) {
+        // Events arriving during either async step are newer than the fetched snapshot.
+        setJobs(mergePendingJobChanges(repairedJobs, pendingChanges));
+      }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch cron jobs'));
-      setJobs([]);
+      if (requestSeqRef.current === requestSeq) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch cron jobs'));
+        setJobs([]);
+      }
     } finally {
-      setLoading(false);
+      if (requestSeqRef.current === requestSeq) {
+        pendingChangesRef.current = null;
+        setLoading(false);
+      }
     }
   }, [conversation_id]);
 
-  // Initial fetch
+  // Clear the previous conversation immediately and invalidate its pending requests.
   useEffect(() => {
+    setJobs([]);
     void fetchJobs();
+    return () => {
+      requestSeqRef.current += 1;
+      pendingChangesRef.current = null;
+    };
   }, [fetchJobs]);
 
   // Event handlers
@@ -167,15 +201,18 @@ export function useCronJobs(conversation_id?: string) {
     () => ({
       onJobCreated: (job: ICronJob) => {
         if (job.metadata.conversation_id === conversation_id) {
+          pendingChangesRef.current?.set(job.id, job);
           setJobs((prev) => (prev.some((j) => j.id === job.id) ? prev : [...prev, job]));
         }
       },
       onJobUpdated: (job: ICronJob) => {
         if (job.metadata.conversation_id === conversation_id) {
+          pendingChangesRef.current?.set(job.id, job);
           setJobs((prev) => prev.map((j) => (j.id === job.id ? job : j)));
         }
       },
       onJobRemoved: ({ job_id }: { job_id: string }) => {
+        pendingChangesRef.current?.set(job_id, null);
         setJobs((prev) => prev.filter((j) => j.id !== job_id));
       },
     }),

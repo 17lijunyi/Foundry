@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   useCronJobs,
   useAllCronJobs,
@@ -164,6 +164,179 @@ describe('useCronJobs', () => {
 
     expect(ipcBridge.cron.listJobsByConversation.invoke).not.toHaveBeenCalled();
     expect(result.current.jobs).toEqual([]);
+  });
+
+  it('ignores an earlier conversation response after switching conversations', async () => {
+    let resolvePrevious!: (jobs: ICronJob[]) => void;
+    const currentJob = mockJob({ id: 'current-job', metadata: { ...mockJob().metadata, conversation_id: 'conv-2' } });
+    vi.mocked(ipcBridge.cron.listJobsByConversation.invoke)
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolvePrevious = resolve;
+        })
+      )
+      .mockResolvedValueOnce([currentJob]);
+    vi.mocked(ipcBridge.cron.onJobCreated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobUpdated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobRemoved.on).mockReturnValue(() => {});
+
+    const { result, rerender } = renderHook(({ id }) => useCronJobs(id), { initialProps: { id: 'conv-1' } });
+    rerender({ id: 'conv-2' });
+    await waitFor(() => expect(result.current.jobs).toEqual([currentJob]));
+
+    await act(async () => {
+      resolvePrevious([mockJob()]);
+    });
+
+    expect(result.current.jobs).toEqual([currentJob]);
+  });
+
+  it('does not let an earlier conversation failure clear the current tasks', async () => {
+    let rejectPrevious!: (error: Error) => void;
+    const currentJob = mockJob({ id: 'current-job', metadata: { ...mockJob().metadata, conversation_id: 'conv-2' } });
+    vi.mocked(ipcBridge.cron.listJobsByConversation.invoke)
+      .mockReturnValueOnce(
+        new Promise((_resolve, reject) => {
+          rejectPrevious = reject;
+        })
+      )
+      .mockResolvedValueOnce([currentJob]);
+    vi.mocked(ipcBridge.cron.onJobCreated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobUpdated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobRemoved.on).mockReturnValue(() => {});
+
+    const { result, rerender } = renderHook(({ id }) => useCronJobs(id), { initialProps: { id: 'conv-1' } });
+    rerender({ id: 'conv-2' });
+    await waitFor(() => expect(result.current.jobs).toEqual([currentJob]));
+
+    await act(async () => {
+      rejectPrevious(new Error('old request failed'));
+    });
+
+    expect(result.current.jobs).toEqual([currentJob]);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('clears the previous conversation tasks while the next conversation is loading', async () => {
+    vi.mocked(ipcBridge.cron.listJobsByConversation.invoke)
+      .mockResolvedValueOnce([mockJob()])
+      .mockReturnValueOnce(new Promise(() => {}));
+    vi.mocked(ipcBridge.cron.onJobCreated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobUpdated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobRemoved.on).mockReturnValue(() => {});
+
+    const { result, rerender } = renderHook(({ id }) => useCronJobs(id), { initialProps: { id: 'conv-1' } });
+    await waitFor(() => expect(result.current.jobs).toHaveLength(1));
+    rerender({ id: 'conv-2' });
+
+    expect(result.current.jobs).toEqual([]);
+    expect(result.current.loading).toBe(true);
+  });
+
+  it('stops loading and ignores pending tasks after leaving a conversation', async () => {
+    let resolvePrevious!: (jobs: ICronJob[]) => void;
+    vi.mocked(ipcBridge.cron.listJobsByConversation.invoke).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolvePrevious = resolve;
+      })
+    );
+    vi.mocked(ipcBridge.cron.onJobCreated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobUpdated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobRemoved.on).mockReturnValue(() => {});
+
+    const { result, rerender } = renderHook(({ id }: { id?: string }) => useCronJobs(id), {
+      initialProps: { id: 'conv-1' } as { id?: string },
+    });
+    rerender({ id: undefined });
+    expect(result.current.loading).toBe(false);
+
+    await act(async () => {
+      resolvePrevious([mockJob()]);
+    });
+
+    expect(result.current.jobs).toEqual([]);
+  });
+
+  it('keeps a removed task out of a pending list snapshot without losing other tasks', async () => {
+    let resolveList!: (jobs: ICronJob[]) => void;
+    let onRemoved!: (event: { job_id: string }) => void;
+    const removed = mockJob();
+    const remaining = mockJob({ id: 'job-2' });
+    vi.mocked(ipcBridge.cron.listJobsByConversation.invoke).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveList = resolve;
+      })
+    );
+    vi.mocked(ipcBridge.cron.onJobCreated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobUpdated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobRemoved.on).mockImplementation((handler) => {
+      onRemoved = handler;
+      return () => {};
+    });
+
+    const { result } = renderHook(() => useCronJobs('conv-1'));
+    await act(async () => {
+      onRemoved({ job_id: removed.id });
+      resolveList([removed, remaining]);
+    });
+
+    expect(result.current.jobs).toEqual([remaining]);
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('keeps the latest task update when a pending list snapshot contains its old state', async () => {
+    let resolveList!: (jobs: ICronJob[]) => void;
+    let onUpdated!: (job: ICronJob) => void;
+    const previous = mockJob();
+    const updated = { ...previous, enabled: false };
+    const other = mockJob({ id: 'job-2' });
+    vi.mocked(ipcBridge.cron.listJobsByConversation.invoke).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveList = resolve;
+      })
+    );
+    vi.mocked(ipcBridge.cron.onJobCreated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobRemoved.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobUpdated.on).mockImplementation((handler) => {
+      onUpdated = handler;
+      return () => {};
+    });
+
+    const { result } = renderHook(() => useCronJobs('conv-1'));
+    await act(async () => {
+      onUpdated(updated);
+      resolveList([previous, other]);
+    });
+
+    expect(result.current.jobs).toEqual([updated, other]);
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('merges tasks created during a pending list request with the remaining snapshot', async () => {
+    let resolveList!: (jobs: ICronJob[]) => void;
+    let onCreated!: (job: ICronJob) => void;
+    const existing = mockJob();
+    const created = mockJob({ id: 'job-new' });
+    vi.mocked(ipcBridge.cron.listJobsByConversation.invoke).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveList = resolve;
+      })
+    );
+    vi.mocked(ipcBridge.cron.onJobUpdated.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobRemoved.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.cron.onJobCreated.on).mockImplementation((handler) => {
+      onCreated = handler;
+      return () => {};
+    });
+
+    const { result } = renderHook(() => useCronJobs('conv-1'));
+    await act(async () => {
+      onCreated(created);
+      resolveList([existing]);
+    });
+
+    expect(result.current.jobs).toEqual([existing, created]);
+    expect(result.current.loading).toBe(false);
   });
 
   it('handles fetch error', async () => {

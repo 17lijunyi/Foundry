@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Select, Message, TimePicker, Radio, Button, Switch } from '@arco-design/web-react';
 import AionModal from '@renderer/components/base/AionModal';
@@ -247,6 +247,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const localeKey = resolveLocaleKey(i18n?.language ?? 'en-US');
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+  const submitInFlightRef = useRef(false);
   const { presetAssistants } = useConversationAssistants();
   const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
   const { providers, getAvailableModels } = useModelProviderList();
@@ -532,9 +533,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   }, []);
 
   const handleSubmit = async () => {
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
+    setSubmitting(true);
     try {
       const values = await form.validate();
-      setSubmitting(true);
 
       const scheduleExpr = scheduleInfo.expr;
       const scheduleDesc = scheduleInfo.description;
@@ -614,6 +617,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     } catch (err) {
       Message.error(getConversationCreateErrorMessage(err, t));
     } finally {
+      submitInFlightRef.current = false;
       setSubmitting(false);
     }
   };
@@ -995,13 +999,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       onChange={(next) => setWorkspace(next || undefined)}
                       onClear={handleWorkspaceClear}
                       placeholder={t('cron.page.form.selectFolder')}
-                      recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
                       chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
                         defaultValue: 'Choose a different folder',
                       })}
                       triggerTestId='cron-workspace-trigger'
-                      menuTestId='cron-workspace-menu'
-                      menuZIndex={10020}
                     />
                   </div>
                 </div>

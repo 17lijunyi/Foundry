@@ -17,6 +17,7 @@ type TTeamBackendAgent = {
   role: string;
   name: string;
   assistant_backend: string;
+  model: string;
   assistant_id?: string;
   custom_agent_id?: string;
 };
@@ -28,12 +29,89 @@ type TTeam = {
 };
 
 test.describe('Team Create - assistant leader', () => {
-  test('can create a team with an assistant leader from the unified assistant list', async ({ page }) => {
+  test('can create a team with an assistant leader from the unified assistant list', async ({ page, electronApp }) => {
     test.setTimeout(120_000);
 
+    const profile = await electronApp.evaluate(({ app }) => ({
+      mode: process.env.AIONUI_E2E_TEST,
+      sandbox: process.env.AIONUI_E2E_USER_DATA_DIR,
+      userData: app.getPath('userData'),
+    }));
+    expect(profile.mode).toBe('1');
+    expect(profile.sandbox).toBeTruthy();
+    expect(path.resolve(profile.userData)).toBe(path.resolve(profile.sandbox!));
+    expect(await readProviderCount(page)).toBe(0);
+
+    const model = 'foundry-e2e-team-model';
+    const fakeKey = 'foundry-e2e-team-not-a-real-key';
+    const requestedModels: string[] = [];
+    const server = http.createServer(async (request, response) => {
+      response.setHeader('Content-Type', 'application/json');
+      if (request.url === '/v1/models') {
+        response.end(JSON.stringify({ object: 'list', data: [{ id: model, object: 'model' }] }));
+        return;
+      }
+      if (request.url !== '/v1/chat/completions' || request.headers.authorization !== `Bearer ${fakeKey}`) {
+        response.writeHead(404);
+        response.end(JSON.stringify({ error: { message: 'Unsupported synthetic request' } }));
+        return;
+      }
+      let body = '';
+      for await (const chunk of request) body += chunk.toString();
+      const payload = JSON.parse(body) as { model: string; stream?: boolean };
+      requestedModels.push(payload.model);
+      const completion = {
+        id: 'foundry-e2e-team-completion',
+        object: payload.stream ? 'chat.completion.chunk' : 'chat.completion',
+        created: 1,
+        model: payload.model,
+        choices: [
+          {
+            index: 0,
+            [payload.stream ? 'delta' : 'message']: { role: 'assistant', content: 'Synthetic team model ready.' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      };
+      if (payload.stream) {
+        response.setHeader('Content-Type', 'text/event-stream');
+        response.end(`data: ${JSON.stringify(completion)}\n\ndata: [DONE]\n\n`);
+      } else response.end(JSON.stringify(completion));
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     let createdTeamId: string | undefined;
+    let providerId: string | undefined;
 
     try {
+      const address = server.address();
+      if (!address || typeof address === 'string') throw new Error('Synthetic provider did not acquire a port');
+      // Seed only this disposable profile, and verify the real backend can reach
+      // the local model before exercising the production readiness gate.
+      const provider = await httpPost<{ id: string }>(page, '/api/providers', {
+        platform: 'custom',
+        name: 'E2E local team provider',
+        base_url: `http://127.0.0.1:${address.port}/v1`,
+        api_key: fakeKey,
+        models: [model],
+        enabled: true,
+        model_settings: { [model]: { openai_api_mode: 'chat_completions' } },
+      });
+      providerId = provider.id;
+      const health = await httpPost<{ status: string; error_kind?: string }>(
+        page,
+        '/api/agents/provider-health-check',
+        { provider_id: providerId, model }
+      );
+      expect(health.status, health.error_kind).toBe('healthy');
+      expect(requestedModels).toContain(model);
+      const [target] = await getProductRoles(page);
+      expect(target.enabled).toBe(true);
+      const detail = await invokeBridge<{ engine: { agent?: { type: string } } }>(page, 'assistants.get', {
+        id: target.id,
+      });
+      expect(detail.engine.agent?.type).toBe('aionrs');
+
       await navigateTo(page, '#/team');
       const createBtn = page.locator('[data-testid="team-create-btn"]').first();
       await expect(createBtn).toBeVisible({ timeout: 10_000 });
@@ -44,34 +122,18 @@ test.describe('Team Create - assistant leader', () => {
 
       await expect(modal.locator('[data-testid="team-create-leader-select"]')).toHaveCount(0);
 
-      const leaderOptions = modal.locator('[data-testid^="team-create-agent-option-"]');
-      await expect(leaderOptions.first()).toBeVisible({ timeout: 10_000 });
-
-      const optionCount = await leaderOptions.count();
-      let targetOption;
-      for (let index = 0; index < optionCount; index += 1) {
-        const candidate = leaderOptions.nth(index);
-        const classes = (await candidate.getAttribute('class')) || '';
-        if (!classes.includes('cursor-not-allowed')) {
-          targetOption = candidate;
-          break;
-        }
-      }
-
-      if (!targetOption) {
-        test.skip(true, 'No selectable assistants available in this environment');
-        return;
-      }
-
-      const targetTestId = await targetOption.getAttribute('data-testid');
-      expect(targetTestId).toBeTruthy();
-      const expectedAssistantId = targetTestId!.replace('team-create-agent-option-', '');
+      const expectedAssistantId = target.id;
+      const targetOption = modal.getByTestId(`team-create-agent-option-${expectedAssistantId}`);
+      await expect(targetOption).toBeVisible({ timeout: 10_000 });
       await targetOption.click();
+      await expect(modal.locator('[data-testid^="team-create-member-draft-"]')).toHaveCount(1);
+      await expect(modal.locator('[data-leader-state="active"]')).toHaveCount(1);
+      await expect(page.locator('.assistant-api-setup-modal:visible')).toHaveCount(0);
 
       const teamName = `E2E Assistant Team ${Date.now()}`;
       await modal.locator('[data-testid="team-create-name-input"]').fill(teamName);
 
-      const confirmBtn = modal.getByRole('button', { name: /create team|创建团队/i });
+      const confirmBtn = modal.getByRole('button', { name: /^(Confirm Create|确认创建)$/i });
       await expect(confirmBtn).toBeEnabled({ timeout: 5_000 });
       await confirmBtn.click();
 
@@ -88,12 +150,27 @@ test.describe('Team Create - assistant leader', () => {
       const leader = team!.assistants[0];
       expect(['lead', 'leader']).toContain(leader.role);
       expect(leader.assistant_id).toBe(expectedAssistantId);
-      expect(leader.assistant_backend).toBeTruthy();
+      expect(leader.assistant_backend).toBe('aionrs');
+      expect(leader.model).toBe(model);
     } finally {
-      if (createdTeamId) {
-        await invokeBridge(page, 'team.remove', { id: createdTeamId }).catch(() => {});
-        const deleted = await invokeBridge<TTeam | null>(page, 'team.get', { id: createdTeamId }).catch(() => null);
-        expect(deleted).toBeNull();
+      try {
+        try {
+          if (createdTeamId) {
+            await navigateTo(page, '#/guid');
+            await invokeBridge(page, 'team.remove', { id: createdTeamId });
+            const deleted = await invokeBridge<TTeam | null>(page, 'team.get', { id: createdTeamId }).catch(() => null);
+            expect(deleted).toBeNull();
+          }
+        } finally {
+          if (providerId) await httpDelete(page, `/api/providers/${encodeURIComponent(providerId)}`);
+          expect(await readProviderCount(page)).toBe(0);
+          // HTTP fixture cleanup bypasses renderer CRUD hooks. Clear its cached
+          // provider catalog before other tests reuse this Electron window.
+          await page.reload({ waitUntil: 'domcontentloaded' });
+        }
+      } finally {
+        server.closeAllConnections();
+        await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
       }
     }
   });
