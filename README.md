@@ -4,15 +4,15 @@
 
 **把想法、资料和 AI 协作，放进一个轻盈的产品工作台。**
 
-**由 [@17lijunyi](https://github.com/17lijunyi) 主导 Foundry 的产品设计、定制开发与维护。**
+**由 [@17lijunyi](https://github.com/17lijunyi) 负责 Foundry 的产品设计、开发与维护。**
 
-Foundry 是面向产品经理的桌面 AI 工作台，围绕需求梳理、文档协作、项目资料和模型对比组织日常工作。界面采用紧凑的助手入口、以输入为中心的布局，以及受 Liquid Glass 启发的半透明材质。
+Foundry 是面向产品经理的桌面 AI 工作台，围绕需求梳理、文档协作、项目资料和模型对比组织日常工作。界面采用紧凑的助手入口、以输入为中心的布局，以及轻盈的半透明玻璃材质。
 
-Foundry 的定制开发聚焦品牌、界面与交互体验，让工作空间、会话、设置和模型对比使用统一的视觉语言。
+Foundry 将品牌、界面与交互体验融入日常工作，让工作空间、会话、设置和模型对比使用统一的视觉语言。
 
 > 当前提供源码，尚未提供 Foundry 的公开 Releases 安装包。下方是源码启动与本地构建方法。
 
-## Foundry 的设计与定制
+## 界面与交互
 
 - **品牌与工作空间**：Foundry 名称与折带 F 图标、以输入为中心的布局、浮动导航和输入区。
 - **统一玻璃界面**：工作空间、会话、设置和模型对比采用一致的半透明材质，macOS 集成原生玻璃。
@@ -23,7 +23,7 @@ Foundry 的定制开发聚焦品牌、界面与交互体验，让工作空间、
 ## 可以做什么
 
 - **需求与文档协作**：在会话中梳理想法、组织 PRD，结合本地文件和项目文件夹与助手协作。
-- **助手与模型配置**：保留助手、模型服务、团队和定时任务等既有入口。外部模型服务和 CLI 助手需要自行配置、安装或登录。
+- **助手与模型配置**：提供助手、模型服务、团队和定时任务入口。外部模型服务和 CLI 助手需要自行配置、安装或登录。
 - **模型对比台**：用相同提示词和材料比较 2～4 个模型，查看独立流式回答、状态与耗时，支持停止、重试和保存对比记录。
 - **文件预览与修改**：打开对话中的文件，在支持编辑的预览中检查修改前后内容，再确认保存；撤回会恢复为待保存草稿，不会静默覆盖磁盘文件。
 
@@ -55,7 +55,7 @@ Foundry 的定制开发聚焦品牌、界面与交互体验，让工作空间、
 - macOS 构建原生玻璃模块需要 **macOS 26 SDK**、Xcode 命令行工具和 Node-API 头文件。使用包含头文件的 Node 安装；自定义安装可通过 `AIONUI_NODE_HEADERS` 指向含 `node_api.h` 的目录。
 - 首次安装依赖、准备运行资源和打包需要联网。
 
-目前主要验证环境为 **macOS / Apple Silicon**。Windows、Linux 和 Intel Mac 的 Foundry 分发包尚未验证；以下命令使用 macOS 的 zsh/bash。其他平台的基础环境说明见[上游开发指南](AionUi/docs/contributing/development.md)，以本仓库实际脚本为准。
+目前主要验证环境为 **macOS / Apple Silicon**。Windows、Linux 和 Intel Mac 的 Foundry 分发包尚未验证；以下命令使用 macOS 的 zsh/bash。其他平台的基础环境说明见[开发指南](AionUi/docs/contributing/development.md)，以本仓库实际脚本为准。
 
 ### 克隆并运行
 
@@ -69,7 +69,7 @@ cd Foundry
 ```sh
 foundry_root="$PWD"
 
-# 构建本仓库的后端，保留模型对比等定制功能。
+# 构建本仓库的后端，包含模型对比等功能。
 (
   cd AionCore
   cargo build --locked --release -p aionui-app --bin aioncore
@@ -89,7 +89,7 @@ foundry_root="$PWD"
 
 ## 本地打包 macOS Apple Silicon 应用
 
-先完成上述依赖安装与后端构建，然后从仓库根目录执行。这里显式准备本仓库的后端资源包，避免打包脚本默认下载上游后端。
+先完成上述依赖安装与后端构建，然后从仓库根目录执行。这里显式准备本仓库的后端资源包，确保安装包使用本地编译的后端。
 
 ```sh
 foundry_root="$PWD"
@@ -129,18 +129,21 @@ cp AionCore/target/release/aioncore "$foundry_bundle/aioncore"
 )
 ```
 
-本分支曾在 macOS Apple Silicon 完成本地构建与运行验证；开源整理不等于在所有平台、全新依赖环境和全部模型服务上完成验收。上述步骤按当前源码入口核对，首次完整构建仍取决于依赖下载和本机工具链。
+目前已在 macOS Apple Silicon 完成本地构建与运行验证；其他平台、全新依赖环境和全部模型服务尚未完成完整验收。上述步骤按当前源码入口核对，首次完整构建仍取决于依赖下载和本机工具链。
 
 ```text
 Foundry/
 ├── AionUi/       # Electron、React / TypeScript 前端和桌面集成
 ├── AionCore/     # Rust 后端、接口、会话与运行资源
-├── docs/         # Foundry 与前代产品的作者说明、修改记录
-├── LICENSE      # 保留的 Apache 2.0 许可证
-└── NOTICE       # Foundry 与上游来源、版权说明
+├── docs/         # 项目说明与修改记录
+├── LICENSE      # Apache 2.0 许可证
+└── NOTICE       # 许可与版权说明
 ```
 
 请保留两个子目录的同级关系。仓库不包含依赖目录、编译产物、聊天记录或个人凭据。开发版使用独立开发配置目录；正式版保留“产品经理工作台”的数据目录名称及既有应用标识，以兼容原有本地数据。备份和排查时不要仅按 Foundry 显示名称判断数据位置。
+
+<details>
+<summary>许可与声明</summary>
 
 ## 许可与来源
 
@@ -149,6 +152,8 @@ Foundry 在现有开源代码基础上进行产品化定制。项目来源、版
 Foundry 自有新增及修改部分沿用 Apache-2.0。许可文本见 [LICENSE](LICENSE)、[AionUi/LICENSE](AionUi/LICENSE) 和 [AionCore/LICENSE](AionCore/LICENSE)，第三方代码、素材和商标遵循各自声明。AionCore 原有 Cargo 元数据标记为 MIT，与其随附 Apache-2.0 许可证文本存在差异；本分支未据此重写上游授权声明。
 
 `FILES.sha256` 仅保留最初源码快照的校验值，不代表当前 Foundry 版本。
+
+</details>
 
 ## 反馈
 

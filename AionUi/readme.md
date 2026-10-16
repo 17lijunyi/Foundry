@@ -1,3 +1,12 @@
+# Foundry 桌面组件
+
+Foundry 的桌面界面与本地工作空间组件，支持会话、文件协作和模型对比。
+
+当前维护者：[@17lijunyi](https://github.com/17lijunyi)。功能介绍、环境要求和运行方法见 [Foundry 项目说明](../README.md)。
+
+<details>
+<summary>组件开发文档与声明</summary>
+
 <p align="center">
   <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
 </p>
@@ -745,3 +754,5 @@ This project is licensed under [Apache-2.0](LICENSE).
 </div>
 
 <sub><a href="https://linux.do/">LINUX DO - A New Ideal Community</a></sub>
+
+</details>
