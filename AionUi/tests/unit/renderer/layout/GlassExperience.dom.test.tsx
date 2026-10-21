@@ -1,16 +1,22 @@
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import AssistantGallery from '@/renderer/pages/guid/components/AssistantGallery';
 import GlassNavigation from '@/renderer/components/layout/Titlebar/GlassNavigation';
+import CssThemeSettings from '@/renderer/pages/settings/AppearanceSettings/CssThemeSettings';
+import { Message } from '@arco-design/web-react';
 
 const state = vi.hoisted(() => ({
   pathname: '/model-bench',
   theme: 'light',
+  activeId: 'glass',
+  selectTheme: vi.fn(),
+  configGet: vi.fn(),
+  configSet: vi.fn(),
+  extensionThemes: vi.fn(),
   order: [] as string[],
   navigate: vi.fn(),
-  setTheme: vi.fn(),
   animate: vi.fn(),
 }));
 vi.mock('@/renderer/hooks/ui/useMotion', () => ({ useMotion: () => ({ animate: state.animate, cancel: vi.fn() }) }));
@@ -20,8 +26,25 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => state.navigate,
 }));
 vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
-  useThemeContext: () => ({ theme: state.theme, setTheme: state.setTheme }),
+  useThemeContext: () => ({
+    theme: state.theme,
+    activeId: state.activeId,
+    activeTheme: null,
+    selectTheme: state.selectTheme,
+  }),
 }));
+vi.mock('@/common/config/configService', () => ({ configService: { get: state.configGet, set: state.configSet } }));
+vi.mock('@/common', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/common')>();
+  return {
+    ...actual,
+    ipcBridge: {
+      ...actual.ipcBridge,
+      extensions: { ...actual.ipcBridge.extensions, getThemes: { invoke: state.extensionThemes } },
+    },
+  };
+});
+vi.mock('@/renderer/pages/settings/AppearanceSettings/CssThemeModal.tsx', () => ({ default: () => null }));
 vi.mock('@/renderer/hooks/assistant/useAssistantOrder', () => ({
   useAssistantOrder: () => ({ assistantOrder: state.order }),
 }));
@@ -53,9 +76,17 @@ beforeEach(() => {
   state.order = [];
   state.pathname = '/model-bench';
   state.theme = 'light';
+  state.activeId = 'glass';
   vi.clearAllMocks();
+  state.selectTheme.mockResolvedValue(undefined);
+  state.configGet.mockReturnValue([]);
+  state.extensionThemes.mockResolvedValue([]);
+  vi.spyOn(Message, 'success').mockImplementation(() => ({ close: vi.fn() }));
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 describe('Glass assistant gallery', () => {
   it('animates only a user selection that becomes the selected assistant', () => {
@@ -146,15 +177,105 @@ describe('Glass navigation', () => {
     expect(state.navigate).toHaveBeenCalledWith('/guid', { state: { resetAssistant: true } });
   });
 
-  it('reflects nested settings routes and switches both theme directions', () => {
+  it('reflects nested settings routes and the currently selected glass appearance', async () => {
     state.pathname = '/settings/appearance';
-    const { rerender } = render(<GlassNavigation />);
+    render(<GlassNavigation />);
     expect(screen.getByRole('button', { name: 'common.settings' })).toHaveAttribute('aria-current', 'page');
-    fireEvent.click(screen.getByRole('button', { name: 'settings.darkMode' }));
-    expect(state.setTheme).toHaveBeenLastCalledWith('dark');
-    state.theme = 'dark';
-    rerender(<GlassNavigation />);
-    fireEvent.click(screen.getByRole('button', { name: 'settings.lightMode' }));
-    expect(state.setTheme).toHaveBeenLastCalledWith('light');
+    fireEvent.click(screen.getByRole('button', { name: 'settings.backgroundAppearance.label' }));
+    expect(await screen.findByRole('menuitemradio', { name: 'settings.backgroundAppearance.glass' })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(3);
+  });
+
+  it.each([
+    ['white', 'light'],
+    ['black', 'dark'],
+    ['glass', 'glass'],
+  ])('selects the %s appearance from the rail', async (label, id) => {
+    render(<GlassNavigation />);
+    fireEvent.click(screen.getByRole('button', { name: 'settings.backgroundAppearance.label' }));
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: `settings.backgroundAppearance.${label}` }));
+    await waitFor(() => expect(state.selectTheme).toHaveBeenCalledWith(id));
+  });
+
+  it('supports selecting an appearance with the keyboard', async () => {
+    render(<GlassNavigation />);
+    fireEvent.click(screen.getByRole('button', { name: 'settings.backgroundAppearance.label' }));
+    const black = await screen.findByRole('menuitemradio', { name: 'settings.backgroundAppearance.black' });
+    black.focus();
+    fireEvent.keyDown(black, { key: 'Enter', keyCode: 13 });
+    await waitFor(() => expect(state.selectTheme).toHaveBeenCalledWith('dark'));
+  });
+
+  it('reports a failed appearance save without losing the selected value', async () => {
+    state.selectTheme.mockRejectedValueOnce(new Error('save failed'));
+    const error = vi.spyOn(Message, 'error').mockImplementation(() => ({ close: vi.fn() }));
+    render(<GlassNavigation />);
+    fireEvent.click(screen.getByRole('button', { name: 'settings.backgroundAppearance.label' }));
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'settings.backgroundAppearance.black' }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith('settings.cssTheme.applyFailed'));
+    expect(state.activeId).toBe('glass');
+    error.mockRestore();
+  });
+});
+
+describe('Background appearance settings', () => {
+  it('shows three localized default cards with distinct previews and a separate system option', async () => {
+    render(<CssThemeSettings />);
+    const white = await screen.findByRole('button', { name: 'settings.backgroundAppearance.white' });
+    const black = screen.getByRole('button', { name: 'settings.backgroundAppearance.black' });
+    expect(white.style.backgroundColor).not.toBe(black.style.backgroundColor);
+    expect(screen.getByRole('button', { name: 'settings.backgroundAppearance.glass' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(screen.queryByTestId('theme-card-system')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['white', 'light'],
+    ['black', 'dark'],
+    ['glass', 'glass'],
+  ])('applies the %s card using its persistent theme id', async (label, id) => {
+    const success = vi.spyOn(Message, 'success').mockImplementation(() => ({ close: vi.fn() }));
+    render(<CssThemeSettings />);
+    fireEvent.click(await screen.findByRole('button', { name: `settings.backgroundAppearance.${label}` }));
+    await waitFor(() => expect(state.selectTheme).toHaveBeenCalledWith(id));
+    success.mockRestore();
+  });
+
+  it('preserves the separate follow-system choice', async () => {
+    state.activeId = 'system';
+    render(<CssThemeSettings />);
+    const system = screen.getByRole('button', { name: 'settings.cssTheme.followSystem' });
+    expect(system).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(system);
+    await waitFor(() => expect(state.selectTheme).toHaveBeenCalledWith('system'));
+  });
+
+  it('keeps custom themes editable alongside the default choices', async () => {
+    state.configGet.mockReturnValue([
+      { id: 'custom', name: 'My theme', appearance: 'dark', builtin: false, created_at: 0, updated_at: 0 },
+    ]);
+    render(<CssThemeSettings />);
+    const custom = await screen.findByRole('button', { name: 'My theme' });
+    fireEvent.focus(custom);
+    expect(screen.getByRole('button', { name: 'common.edit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'settings.cssTheme.addManually' })).toBeInTheDocument();
+  });
+
+  it('shows a save failure and keeps the old card selected', async () => {
+    state.selectTheme.mockRejectedValueOnce(new Error('save failed'));
+    const error = vi.spyOn(Message, 'error').mockImplementation(() => ({ close: vi.fn() }));
+    render(<CssThemeSettings />);
+    fireEvent.click(await screen.findByRole('button', { name: 'settings.backgroundAppearance.black' }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith('settings.cssTheme.applyFailed'));
+    expect(screen.getByRole('button', { name: 'settings.backgroundAppearance.glass' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    error.mockRestore();
   });
 });

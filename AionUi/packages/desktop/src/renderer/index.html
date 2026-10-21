@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-theme="light" data-color-scheme="default">
+<html data-theme="light" data-surface="solid" data-color-scheme="default">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -14,11 +14,18 @@
     <link rel="apple-touch-icon" href="./pwa/icon-180.png" />
     <title>Foundry</title>
     <script>
-      // Synchronously restore theme appearance from localStorage to prevent theme flash
+      // Restore appearance and material together before the first frame.
       (function () {
         try {
           var theme = localStorage.getItem('__aionui_theme');
-          if (theme) document.documentElement.setAttribute('data-theme', theme);
+          if (theme === 'light' || theme === 'dark') document.documentElement.setAttribute('data-theme', theme);
+          var surface = localStorage.getItem('__aionui_surface');
+          if (surface === 'solid' || surface === 'glass') {
+            document.documentElement.setAttribute('data-surface', surface);
+          } else if (theme) {
+            // Old installations and custom themes used glass before this cache existed.
+            document.documentElement.setAttribute('data-surface', 'glass');
+          }
         } catch (e) {}
       })();
     </script>
@@ -39,7 +46,7 @@
       // Set arco-theme on body synchronously
       try {
         var t = localStorage.getItem('__aionui_theme');
-        if (t) document.body.setAttribute('arco-theme', t);
+        if (t === 'light' || t === 'dark') document.body.setAttribute('arco-theme', t);
       } catch (e) {}
     </script>
     <div id="root"></div>

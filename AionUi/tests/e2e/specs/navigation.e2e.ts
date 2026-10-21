@@ -93,9 +93,14 @@ test.describe('Settings Pages', () => {
     await navigateTo(page, '#/assistants');
     await expect(page.getByRole('heading', { name: /^(Assistants|助手)$/ })).toBeVisible();
     const wasDark = await page.locator('body').getAttribute('arco-theme');
+    const wasGlass = (await page.locator('html').getAttribute('data-surface')) === 'glass';
     const rail = page.locator('[data-glass-region="rail"]');
-    if (wasDark !== 'dark') {
-      await rail.getByRole('button', { name: /Dark|深色/i }).click();
+    const chooseAppearance = async (name: RegExp) => {
+      await rail.getByRole('button', { name: /Background appearance|背景外观/i }).click();
+      await page.getByRole('menuitemradio', { name }).click();
+    };
+    if (wasDark !== 'dark' || wasGlass) {
+      await chooseAppearance(/^(Black|黑色)$/);
       await expect(page.locator('body')).toHaveAttribute('arco-theme', 'dark');
     }
     try {
@@ -107,7 +112,10 @@ test.describe('Settings Pages', () => {
       });
       await takeScreenshot(page, 'foundry-dark-assistants');
     } finally {
-      if (wasDark !== 'dark') await rail.getByRole('button', { name: /Light|浅色/i }).click();
+      if (wasDark !== 'dark' || wasGlass) {
+        await chooseAppearance(wasGlass ? /^(Frosted glass|磨砂玻璃)$/ : /^(White|白色)$/);
+        await expect(page.locator('html')).toHaveAttribute('data-surface', wasGlass ? 'glass' : 'solid');
+      }
     }
   });
 });

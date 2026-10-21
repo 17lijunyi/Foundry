@@ -1424,5 +1424,12 @@
     "objects": "Objets",
     "symbols": "Symboles",
     "flags": "Drapeaux"
+  },
+  "backgroundAppearance": {
+    "label": "Apparence du fond",
+    "white": "Blanc",
+    "black": "Noir",
+    "glass": "Verre dépoli",
+    "hint": "Choisissez une apparence de fond. Votre choix est enregistré automatiquement."
   }
 }

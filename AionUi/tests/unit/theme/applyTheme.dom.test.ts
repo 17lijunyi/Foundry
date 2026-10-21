@@ -1,17 +1,28 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { applyTheme } from '@/renderer/utils/theme/applyTheme';
 import type { Theme } from '@/common/theme/types';
+import { readFileSync } from 'node:fs';
 
 const base = { builtin: true, created_at: 0, updated_at: 0 };
 
 beforeEach(() => {
   document.documentElement.removeAttribute('data-theme');
+  document.documentElement.removeAttribute('data-surface');
   document.body.removeAttribute('arco-theme');
   document.getElementById('theme-tokens')?.remove();
   document.getElementById('theme-decoration')?.remove();
 });
 
 describe('applyTheme', () => {
+  it.each(['solid', 'glass'] as const)('applies the %s material independently of light/dark', (surface) => {
+    applyTheme({ ...base, id: 'dark', name: 'Dark', appearance: 'dark', surface });
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect(document.documentElement.getAttribute('data-surface')).toBe(surface);
+  });
+  it('preserves glass material for an older custom theme without a surface field', () => {
+    applyTheme({ ...base, id: 'legacy', name: 'Legacy', appearance: 'light', builtin: false });
+    expect(document.documentElement.getAttribute('data-surface')).toBe('glass');
+  });
   it('sets appearance attributes', () => {
     applyTheme({ ...base, id: 'dark', name: 'Dark', appearance: 'dark' } as Theme);
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
@@ -78,5 +89,41 @@ describe('applyTheme', () => {
     // Switching to a theme without tokens must clear the block.
     applyTheme({ ...base, id: 'light', name: 'Light', appearance: 'light' } as Theme);
     expect(document.getElementById('theme-tokens')).toBeNull();
+  });
+});
+
+describe('startup appearance restoration', () => {
+  const html = readFileSync('packages/desktop/src/renderer/index.html', 'utf8');
+  const startupScript = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+
+  beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.setAttribute('data-surface', 'solid');
+  });
+
+  it.each([
+    ['light', 'solid'],
+    ['dark', 'solid'],
+    ['light', 'glass'],
+  ])('restores %s / %s before the renderer starts', (appearance, surface) => {
+    localStorage.setItem('__aionui_theme', appearance);
+    localStorage.setItem('__aionui_surface', surface);
+    new Function(startupScript!)();
+    expect(document.documentElement.getAttribute('data-theme')).toBe(appearance);
+    expect(document.documentElement.getAttribute('data-surface')).toBe(surface);
+  });
+
+  it('preserves glass for an old appearance-only cache', () => {
+    localStorage.setItem('__aionui_theme', 'dark');
+    new Function(startupScript!)();
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect(document.documentElement.getAttribute('data-surface')).toBe('glass');
+  });
+
+  it('ignores malformed cached material values', () => {
+    localStorage.setItem('__aionui_surface', 'unexpected');
+    new Function(startupScript!)();
+    expect(document.documentElement.getAttribute('data-surface')).toBe('solid');
   });
 });

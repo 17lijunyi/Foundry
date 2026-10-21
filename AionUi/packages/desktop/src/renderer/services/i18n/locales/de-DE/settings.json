@@ -1424,5 +1424,12 @@
     "objects": "Objekte",
     "symbols": "Symbole",
     "flags": "Flaggen"
+  },
+  "backgroundAppearance": {
+    "label": "Hintergrunddarstellung",
+    "white": "Weiß",
+    "black": "Schwarz",
+    "glass": "Milchglas",
+    "hint": "Wählen Sie eine Hintergrunddarstellung. Ihre Auswahl wird automatisch gespeichert."
   }
 }

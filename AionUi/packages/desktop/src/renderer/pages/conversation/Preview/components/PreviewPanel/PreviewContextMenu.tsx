@@ -289,6 +289,7 @@ const PreviewContextMenu: React.FC<PreviewContextMenuProps> = ({
     // restores positioning against the viewport.
     <div
       ref={contextMenuRef}
+      data-glass-input
       className='fixed shadow-lg rd-8px py-4px z-9999'
       style={{
         left: `${position.x}px`,

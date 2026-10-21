@@ -12,9 +12,10 @@
  * Handles window minimize, maximize, close and other control operations
  */
 
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, screen } from 'electron';
 import path from 'node:path';
 import { ipcBridge } from '@/common';
+import type { GlassRegion } from '@/common/adapter/ipcBridge';
 import { getCloseToTrayEnabled, getIsQuitting } from '@process/utils/tray';
 
 type NativeGlass = { update: (handle: Buffer, payload: string) => boolean };
@@ -22,10 +23,125 @@ let nativeGlass: NativeGlass | null | undefined;
 const glassWindows = new WeakSet<BrowserWindow>();
 const glassButtonPositions = new WeakMap<BrowserWindow, { x: number; y: number }>();
 let glassWindow: BrowserWindow | undefined;
+type PointerState = {
+  regions: GlassRegion[];
+  geometryKnown: boolean;
+  interactionActive: boolean;
+  ignoring: boolean;
+  timer?: ReturnType<typeof setInterval>;
+};
+const pointerStates = new WeakMap<BrowserWindow, PointerState>();
+
+function validRegions(regions: unknown, maximum: number): regions is GlassRegion[] {
+  return (
+    Array.isArray(regions) &&
+    regions.length <= maximum &&
+    Array.from(regions).every((region: Partial<GlassRegion> | null) => {
+      if (!region || typeof region !== 'object') return false;
+      return (
+        [region.x, region.y, region.width, region.height, region.radius].every(
+          (value) => typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= 1_000_000
+        ) &&
+        region.width! >= 0 &&
+        region.height! >= 0 &&
+        region.radius! >= 0
+      );
+    })
+  );
+}
+
+function insideRegion(x: number, y: number, region: GlassRegion): boolean {
+  if (region.width === 0 || region.height === 0) return false;
+  if (x < region.x || y < region.y || x > region.x + region.width || y > region.y + region.height) return false;
+  const radius = Math.min(region.radius, region.width / 2, region.height / 2);
+  const nearestX = Math.max(region.x + radius, Math.min(x, region.x + region.width - radius));
+  const nearestY = Math.max(region.y + radius, Math.min(y, region.y + region.height - radius));
+  return (x - nearestX) ** 2 + (y - nearestY) ** 2 <= radius ** 2;
+}
+
+function setPointerIgnored(window: BrowserWindow, state: PointerState, ignore: boolean): void {
+  if (window.isDestroyed() || state.ignoring === ignore) return;
+  window.setIgnoreMouseEvents(ignore, { forward: true });
+  state.ignoring = ignore;
+}
+
+function stopPointerTracking(window: BrowserWindow, forget = false): void {
+  const state = pointerStates.get(window);
+  if (!state) return;
+  if (state.timer) clearInterval(state.timer);
+  state.timer = undefined;
+  state.interactionActive = false;
+  setPointerIgnored(window, state, false);
+  if (forget) pointerStates.delete(window);
+}
+
+/** Keep hit testing reliable while another app is focused and Chromium misses mousemove events. */
+function synchronizePointer(window: BrowserWindow): void {
+  const state = pointerStates.get(window);
+  if (!state) return;
+  if (window.isDestroyed() || !window.isVisible() || window.isMinimized()) {
+    stopPointerTracking(window);
+    return;
+  }
+  const bounds = window.getContentBounds();
+  const cursor = screen.getCursorScreenPoint();
+  const zoom = window.webContents.getZoomFactor();
+  const x = cursor.x - bounds.x;
+  const y = cursor.y - bounds.y;
+  // Preserve the resize border and never change an in-progress drag into a click-through.
+  const insideCanvas = x >= 6 && y >= 6 && x <= bounds.width - 6 && y <= bounds.height - 6;
+  const ignore =
+    insideCanvas &&
+    !state.interactionActive &&
+    Number.isFinite(zoom) &&
+    zoom > 0 &&
+    state.regions.length > 0 &&
+    !state.regions.some((region) => insideRegion(x / zoom, y / zoom, region));
+  setPointerIgnored(window, state, ignore);
+}
+
+function startPointerTracking(window: BrowserWindow): void {
+  const state = pointerStates.get(window);
+  if (!state || !state.regions.length || window.isDestroyed() || !window.isVisible() || window.isMinimized()) return;
+  synchronizePointer(window);
+  state.timer ??= setInterval(() => synchronizePointer(window), 32);
+  state.timer.unref();
+}
 
 /** Bind glass geometry to the main window, even while a child window has focus. */
 export function registerGlassWindow(window: BrowserWindow): void {
+  if (glassWindow === window) return;
+  if (glassWindow) stopPointerTracking(glassWindow, true);
   glassWindow = window;
+  if (process.platform === 'darwin') {
+    pointerStates.set(window, { regions: [], geometryKnown: false, interactionActive: false, ignoring: false });
+    const resumePointerTracking = () => startPointerTracking(window);
+    const pausePointerTracking = () => stopPointerTracking(window);
+    const refreshPointer = () => synchronizePointer(window);
+    window.on('show', resumePointerTracking);
+    window.on('restore', resumePointerTracking);
+    window.on('hide', pausePointerTracking);
+    window.on('minimize', pausePointerTracking);
+    window.on('move', refreshPointer);
+    window.on('resize', refreshPointer);
+    window.on('focus', refreshPointer);
+    window.on('blur', () => {
+      const state = pointerStates.get(window);
+      if (state) state.interactionActive = false;
+      synchronizePointer(window);
+    });
+    const resetPointerRegions = () => {
+      const state = pointerStates.get(window);
+      if (state) state.regions = [];
+      stopPointerTracking(window);
+    };
+    window.webContents.on('did-start-navigation', (details) => {
+      // Subframe loads and SPA navigation keep the renderer hook mounted and its
+      // geometry cache intact, so only a new top-level document invalidates it.
+      if (details.isMainFrame && !details.isSameDocument) resetPointerRegions();
+    });
+    window.webContents.on('render-process-gone', resetPointerRegions);
+  }
   // macOS redraws the traffic lights after native zoom/live-resize callbacks.
   const restoreButtons = () =>
     setImmediate(() => {
@@ -36,6 +152,7 @@ export function registerGlassWindow(window: BrowserWindow): void {
   window.on('maximize', restoreButtons);
   window.on('unmaximize', restoreButtons);
   window.once('closed', () => {
+    stopPointerTracking(window, true);
     if (glassWindow === window) glassWindow = undefined;
   });
 }
@@ -95,21 +212,21 @@ export function initWindowControlsBridge(): void {
     if (process.platform !== 'darwin') return false;
     const window = glassWindow;
     if (window?.isDestroyed()) return false;
-    if (!window || !payload || typeof payload.dark !== 'boolean' || !Array.isArray(payload.regions)) return false;
-    if (payload.regions.length > 3) return false;
+    if (!window || !payload || typeof payload.dark !== 'boolean' || !validRegions(payload.regions, 3)) return false;
+    if (payload.inputRegions !== undefined && !validRegions(payload.inputRegions, 64)) return false;
+    if (payload.interactionActive !== undefined && typeof payload.interactionActive !== 'boolean') return false;
+    if (payload.surface !== undefined && payload.surface !== 'solid' && payload.surface !== 'glass') return false;
     const [width, height] = window.getContentSize();
     const zoom = window.webContents.getZoomFactor();
-    if (
-      payload.regions.some(
-        (region) =>
-          !region ||
-          ![region.x, region.y, region.width, region.height, region.radius].every(Number.isFinite) ||
-          region.width < 0 ||
-          region.height < 0 ||
-          region.radius < 0
-      )
-    )
-      return false;
+    if (!Number.isFinite(zoom) || zoom <= 0) return false;
+    const state = pointerStates.get(window);
+    if (state) {
+      state.geometryKnown = true;
+      state.regions = payload.regions.length ? [...payload.regions, ...(payload.inputRegions ?? [])] : [];
+      state.interactionActive = payload.interactionActive ?? false;
+      if (state.regions.length) startPointerTracking(window);
+      else stopPointerTracking(window);
+    }
     const regions = payload.regions.map((region) => ({
       x: Math.max(0, Math.min(width, region.x * zoom)),
       y: Math.max(0, Math.min(height, region.y * zoom)),
@@ -125,8 +242,16 @@ export function initWindowControlsBridge(): void {
       window.setWindowButtonPosition(position);
     }
     const glass = loadNativeGlass();
+    // Material visibility is independent of the window's input geometry.
+    // Solid panels still leave the desktop gaps around the capsules clickable.
+    const materialRegions = payload.surface === 'solid' ? [] : regions;
     const mounted =
-      glass?.update(window.getNativeWindowHandle(), JSON.stringify({ regions, dark: payload.dark })) ?? false;
+      (glass?.update(
+        window.getNativeWindowHandle(),
+        JSON.stringify({ regions: materialRegions, dark: payload.dark })
+      ) ??
+        false) &&
+      payload.surface !== 'solid';
     if (mounted && !glassWindows.has(window)) {
       glassWindows.add(window);
       console.info(`[Window] Native glass mounted on ${regions.length} surfaces (window=${window.id}).`);
@@ -135,7 +260,11 @@ export function initWindowControlsBridge(): void {
   });
   ipcBridge.windowControls.setPointerPassthrough.provider(async (ignore) => {
     if (process.platform !== 'darwin' || typeof ignore !== 'boolean') return;
-    if (glassWindow && !glassWindow.isDestroyed()) glassWindow.setIgnoreMouseEvents(ignore, { forward: true });
+    const window = glassWindow;
+    if (!window || window.isDestroyed()) return;
+    const state = pointerStates.get(window);
+    if (state?.geometryKnown) synchronizePointer(window);
+    else if (state) setPointerIgnored(window, state, ignore);
   });
 
   // 最小化窗口 / Minimize window

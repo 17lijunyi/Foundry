@@ -1424,5 +1424,12 @@
     "objects": "Objetos",
     "symbols": "Símbolos",
     "flags": "Banderas"
+  },
+  "backgroundAppearance": {
+    "label": "Apariencia del fondo",
+    "white": "Blanco",
+    "black": "Negro",
+    "glass": "Vidrio esmerilado",
+    "hint": "Elige la apariencia del fondo. Tu selección se guarda automáticamente."
   }
 }

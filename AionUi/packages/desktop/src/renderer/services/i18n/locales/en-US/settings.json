@@ -1424,5 +1424,12 @@
     "objects": "Objects",
     "symbols": "Symbols",
     "flags": "Flags"
+  },
+  "backgroundAppearance": {
+    "label": "Background appearance",
+    "white": "White",
+    "black": "Black",
+    "glass": "Frosted glass",
+    "hint": "Choose a background appearance. Your choice is saved automatically."
   }
 }

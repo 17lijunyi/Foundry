@@ -30,6 +30,8 @@ if (process.platform === 'darwin') {
       process.env.AIONUI_NATIVE_ARCH || process.arch,
       '-framework',
       'AppKit',
+      '-framework',
+      'QuartzCore',
       '-I',
       headerDir,
       resolve(nativeDir, 'glass.mm'),

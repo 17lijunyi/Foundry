@@ -1478,10 +1478,18 @@ export const deepLink = {
 // Window Controls — stays IPC (Electron-native)
 // ---------------------------------------------------------------------------
 
+export type GlassRegion = { x: number; y: number; width: number; height: number; radius: number };
+
 export const windowControls = {
   updateGlass: bridge.buildProvider<
     boolean,
-    { regions: Array<{ x: number; y: number; width: number; height: number; radius: number }>; dark: boolean }
+    {
+      regions: GlassRegion[];
+      inputRegions?: GlassRegion[];
+      interactionActive?: boolean;
+      surface?: 'solid' | 'glass';
+      dark: boolean;
+    }
   >('window-controls:update-glass'),
   setPointerPassthrough: bridge.buildProvider<void, boolean>('window-controls:pointer-passthrough'),
   minimize: bridge.buildProvider<void, void>('window-controls:minimize'),

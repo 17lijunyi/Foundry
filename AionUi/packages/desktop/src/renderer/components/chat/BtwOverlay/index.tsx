@@ -124,7 +124,7 @@ const BtwOverlay: React.FC<BtwOverlayProps> = ({
   };
 
   return ReactDOM.createPortal(
-    <div className={styles.portalRoot}>
+    <div className={styles.portalRoot} data-glass-input>
       <div className={styles.backdrop} onClick={onDismiss} />
       <div className={styles.panelWrap}>
         <div className={`rd-16px p-16px ${styles.overlay}`} style={overlayStyle}>

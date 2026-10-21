@@ -5,6 +5,7 @@
  */
 
 export type ThemeAppearance = 'light' | 'dark';
+export type ThemeSurface = 'solid' | 'glass';
 
 /** A flat map of CSS custom property name → value (e.g. `{ '--primary': '#165dff' }`). */
 export type TokenMap = Record<string, string>;
@@ -36,6 +37,8 @@ export type Theme = {
   name: string;
   cover?: string;
   appearance: ThemeAppearance;
+  /** Missing on older/custom themes; preserve their existing glass surfaces. */
+  surface?: ThemeSurface;
   tokens?: ThemeTokens;
   css?: string;
   builtin: boolean;

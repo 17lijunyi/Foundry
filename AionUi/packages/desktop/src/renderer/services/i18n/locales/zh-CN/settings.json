@@ -1425,5 +1425,12 @@
     "objects": "物品",
     "symbols": "符号",
     "flags": "旗帜"
+  },
+  "backgroundAppearance": {
+    "label": "背景外观",
+    "white": "白色",
+    "black": "黑色",
+    "glass": "磨砂玻璃",
+    "hint": "选择喜欢的背景外观，设置会自动保存。"
   }
 }

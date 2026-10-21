@@ -16,10 +16,12 @@ import type { Theme } from '@/common/theme/types';
 import { useCallback, useEffect, useState } from 'react';
 
 const APPEARANCE_CACHE_KEY = '__aionui_theme';
+const SURFACE_CACHE_KEY = '__aionui_surface';
 
 function cacheAppearance(theme: Theme): void {
   try {
     localStorage.setItem(APPEARANCE_CACHE_KEY, theme.appearance);
+    localStorage.setItem(SURFACE_CACHE_KEY, theme.surface ?? 'glass');
   } catch {
     /* noop */
   }
@@ -44,6 +46,7 @@ async function initActiveTheme(): Promise<Theme> {
     console.error('init theme failed', e);
     const fallback = resolveActiveTheme(LIGHT_THEME_ID, BUILTIN_THEMES);
     applyTheme(fallback);
+    cacheAppearance(fallback);
     return fallback;
   }
 }
@@ -73,7 +76,7 @@ const useTheme = (): [Theme | null, (activeId: string) => Promise<void>, string 
     const off = ipcBridge.theme.changed.on((t: Theme) => {
       applyTheme(t);
       if (mounted) {
-        setActive((prev) => (prev?.id === t.id ? prev : t));
+        setActive(t);
         // Best-effort: config was persisted before the broadcast, fall back to the resolved id.
         setActiveId((configService.get('theme.activeId') as string) || t.id);
       }

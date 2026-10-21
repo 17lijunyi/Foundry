@@ -8,6 +8,7 @@ import type { Theme } from '@/common/theme/types';
 import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
 import { resolveActiveTheme } from '@/common/theme/resolveTheme';
+import { LIGHT_THEME_ID } from '@/common/theme/constants';
 import { BUILTIN_THEMES } from '@renderer/theme/builtinThemes';
 import { processCustomCss } from './customCssProcessor';
 import { tokensToCss } from './tokensToCss';
@@ -15,6 +16,7 @@ import { getSystemPrefersDark } from './systemAppearance';
 
 const TOKENS_STYLE_ID = 'theme-tokens';
 const DECORATION_STYLE_ID = 'theme-decoration';
+let selectionQueue: Promise<unknown> = Promise.resolve();
 
 function upsertStyle(id: string, css: string | null, root: Document = document): void {
   const existing = root.getElementById(id);
@@ -67,18 +69,37 @@ function applyAppearanceAttributes(root: Document, appearance: Theme['appearance
 /** Apply a resolved theme to a document. Used by every app-chrome surface. */
 export function applyTheme(theme: Theme, root: Document = document): void {
   applyAppearanceAttributes(root, theme.appearance);
+  root.documentElement.setAttribute('data-surface', theme.surface ?? 'glass');
   upsertStyle(TOKENS_STYLE_ID, tokensToCss(theme.tokens), root);
   upsertStyle(DECORATION_STYLE_ID, theme.css ? processCustomCss(theme.css) : null, root);
 }
 
-/** Resolve `activeId` locally, apply, persist, and publish to Electron for cross-window broadcast. */
-export async function setActiveTheme(activeId: string): Promise<Theme> {
+async function saveAndApplyTheme(activeId: string): Promise<Theme> {
   const userThemes = (configService.get('theme.userThemes') as Theme[] | undefined) ?? [];
   const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark());
+  const previousId = (configService.get('theme.activeId') as string | undefined) || LIGHT_THEME_ID;
+  try {
+    await configService.set('theme.activeId', activeId);
+  } catch (error) {
+    // ConfigService updates its memory cache optimistically. Restore only this
+    // selection so a later successful choice is not overwritten by a failed save.
+    if (configService.get('theme.activeId') === activeId) {
+      configService.setLocal('theme.activeId', previousId);
+    }
+    throw error;
+  }
   applyTheme(resolved);
-  await configService.set('theme.activeId', activeId);
-  await publishThemeToElectron(resolved);
+  // The selection is already saved. A relay failure must not leave the local
+  // selected card and startup cache behind the successfully applied surface.
+  await publishThemeToElectron(resolved).catch((error) => console.warn('theme broadcast failed', error));
   return resolved;
+}
+
+/** Save choices in order, keeping failed saves from changing the visible surface. */
+export function setActiveTheme(activeId: string): Promise<Theme> {
+  const selection = selectionQueue.then(() => saveAndApplyTheme(activeId));
+  selectionQueue = selection.catch(() => {});
+  return selection;
 }
 
 /** Seed Electron's cross-window theme relay. WebUI has no Electron surfaces to notify. */

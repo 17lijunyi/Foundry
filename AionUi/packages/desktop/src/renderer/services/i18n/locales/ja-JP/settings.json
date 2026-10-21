@@ -1426,5 +1426,12 @@
     "objects": "物",
     "symbols": "記号",
     "flags": "旗"
+  },
+  "backgroundAppearance": {
+    "label": "背景の外観",
+    "white": "ホワイト",
+    "black": "ブラック",
+    "glass": "すりガラス",
+    "hint": "背景の外観を選択してください。設定は自動的に保存されます。"
   }
 }

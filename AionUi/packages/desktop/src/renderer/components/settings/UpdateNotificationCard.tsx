@@ -49,6 +49,7 @@ const UpdateNotificationCard: React.FC = () => {
     return renderNotificationLayer(
       <button
         type='button'
+        data-glass-input
         data-testid='update-notification-mini-progress'
         data-mini-status={state.status}
         data-ring-stroke-width='8'
@@ -258,6 +259,7 @@ const UpdateNotificationCard: React.FC = () => {
   return renderNotificationLayer(
     <>
       <section
+        data-glass-input
         data-testid='update-notification-card'
         className='fixed end-24px bottom-24px z-1000 w-max min-w-300px max-w-[calc(100vw-32px)] bg-1 border border-border-2 rd-8px shadow-[0_2px_16px_rgba(0,0,0,0.12)] overflow-hidden'
       >

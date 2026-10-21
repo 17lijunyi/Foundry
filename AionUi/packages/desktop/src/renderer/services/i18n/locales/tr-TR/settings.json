@@ -1424,5 +1424,12 @@
     "objects": "Nesneler",
     "symbols": "Semboller",
     "flags": "Bayraklar"
+  },
+  "backgroundAppearance": {
+    "label": "Arka plan görünümü",
+    "white": "Beyaz",
+    "black": "Siyah",
+    "glass": "Buzlu cam",
+    "hint": "Bir arka plan görünümü seçin. Seçiminiz otomatik olarak kaydedilir."
   }
 }

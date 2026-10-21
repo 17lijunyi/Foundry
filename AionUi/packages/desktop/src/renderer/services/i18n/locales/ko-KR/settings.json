@@ -1426,5 +1426,12 @@
     "objects": "사물",
     "symbols": "기호",
     "flags": "깃발"
+  },
+  "backgroundAppearance": {
+    "label": "배경 스타일",
+    "white": "화이트",
+    "black": "블랙",
+    "glass": "반투명 유리",
+    "hint": "원하는 배경 스타일을 선택하세요. 설정은 자동으로 저장됩니다."
   }
 }

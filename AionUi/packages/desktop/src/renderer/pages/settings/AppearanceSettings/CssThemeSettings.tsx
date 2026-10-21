@@ -17,7 +17,7 @@ import CssThemeModal from './CssThemeModal.tsx';
 import { BUILTIN_THEMES, DEFAULT_THEME_ID } from './presets.ts';
 import { BACKGROUND_BLOCK_START, injectBackgroundCssBlock } from './backgroundUtils.ts';
 import { resolveExtensionAssetUrl } from '@renderer/utils/platform.ts';
-import { LIGHT_THEME_ID, SYSTEM_THEME_ID } from '@/common/theme/constants';
+import { DARK_THEME_ID, GLASS_THEME_ID, LIGHT_THEME_ID, SYSTEM_THEME_ID } from '@/common/theme/constants';
 
 interface ThemePreviewPalette {
   appBg: string;
@@ -144,17 +144,32 @@ const extractThemePreviewPalette = (css: string, mode: 'light' | 'dark'): ThemeP
   };
 };
 
-const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette }> = ({ palette }) => {
+const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette; frosted?: boolean }> = ({
+  palette,
+  frosted = false,
+}) => {
+  const surface = (color: string) => (frosted ? `color-mix(in srgb, ${color} 55%, transparent)` : color);
   return (
-    <div className='absolute inset-0 pointer-events-none'>
-      <div className='absolute inset-0' style={{ background: palette.appBg }} />
+    <div className='absolute inset-0 pointer-events-none' data-preview-surface={frosted ? 'glass' : 'solid'}>
+      <div
+        className='absolute inset-0'
+        style={{
+          background: frosted
+            ? `radial-gradient(ellipse at 15% 15%, ${palette.accent}, transparent 65%), linear-gradient(135deg, ${palette.appBg}, ${palette.userBubble}, ${palette.textMuted})`
+            : palette.appBg,
+        }}
+      />
       <div
         className='absolute start-8px end-8px top-8px bottom-8px rounded-8px overflow-hidden border border-solid'
-        style={{ borderColor: palette.border, background: palette.mainBg }}
+        style={{
+          borderColor: palette.border,
+          background: surface(palette.mainBg),
+          backdropFilter: frosted ? 'blur(10px) saturate(140%)' : undefined,
+        }}
       >
         <div
           className='h-14px border-b border-solid flex items-center px-6px gap-4px'
-          style={{ borderColor: palette.border, background: palette.headerBg }}
+          style={{ borderColor: palette.border, background: surface(palette.headerBg) }}
         >
           <span className='block w-5px h-5px rounded-full' style={{ background: palette.accent, opacity: 0.9 }}></span>
           <span
@@ -169,7 +184,7 @@ const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette }> = ({ palett
         <div style={{ height: 'calc(100% - 14px)', display: 'flex' }}>
           <div
             className='border-e border-solid px-3px py-3px flex flex-col gap-3px'
-            style={{ width: '23%', borderColor: palette.border, background: palette.sideBg }}
+            style={{ width: '23%', borderColor: palette.border, background: surface(palette.sideBg) }}
           >
             <span className='block h-3px rounded-full' style={{ background: palette.textMuted, opacity: 0.4 }}></span>
             <span
@@ -183,7 +198,7 @@ const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette }> = ({ palett
           </div>
           <div
             className='border-e border-solid px-4px py-4px flex flex-col gap-4px'
-            style={{ width: '54%', borderColor: palette.border, background: palette.mainBg }}
+            style={{ width: '54%', borderColor: palette.border, background: surface(palette.mainBg) }}
           >
             <span
               className='block h-6px rounded-[6px] w-4/5'
@@ -198,7 +213,10 @@ const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette }> = ({ palett
               style={{ background: palette.aiBubble, opacity: 0.82 }}
             ></span>
           </div>
-          <div className='px-3px py-3px flex flex-col gap-3px' style={{ width: '23%', background: palette.sideBg }}>
+          <div
+            className='px-3px py-3px flex flex-col gap-3px'
+            style={{ width: '23%', background: surface(palette.sideBg) }}
+          >
             <span className='block h-3px rounded-full' style={{ background: palette.textMuted, opacity: 0.36 }}></span>
             <span
               className='block h-3px rounded-full w-5/6'
@@ -210,16 +228,6 @@ const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette }> = ({ palett
     </div>
   );
 };
-
-/** Diagonal split preview for the "Follow System" card: light top-left, dark bottom-right. */
-const SystemThemePreview: React.FC = () => (
-  <div className='absolute inset-0 pointer-events-none'>
-    <ThemeLayoutPreview palette={fallbackThemePreviewPaletteByMode.light} />
-    <div className='absolute inset-0' style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 100%)' }}>
-      <ThemeLayoutPreview palette={fallbackThemePreviewPaletteByMode.dark} />
-    </div>
-  </div>
-);
 
 const ensureBackgroundCss = <T extends { id?: string; cover?: string; css?: string; builtin?: boolean }>(
   theme: T
@@ -240,7 +248,7 @@ const ensureBackgroundCss = <T extends { id?: string; cover?: string; css?: stri
  */
 const CssThemeSettings: React.FC = () => {
   const { t } = useTranslation();
-  const { theme: currentTheme, activeTheme, activeId, selectTheme } = useThemeContext();
+  const { activeTheme, activeId, selectTheme } = useThemeContext();
   const [themes, setThemes] = useState<Theme[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTheme, setEditingTheme] = useState<Theme | null>(null);
@@ -251,27 +259,29 @@ const CssThemeSettings: React.FC = () => {
   const themePreviewPalettes = useMemo(() => {
     const map = new Map<string, ThemePreviewPalette>();
     themes.forEach((cssTheme) => {
-      map.set(cssTheme.id, extractThemePreviewPalette(cssTheme.css || '', currentTheme === 'dark' ? 'dark' : 'light'));
+      map.set(
+        cssTheme.id,
+        extractThemePreviewPalette(cssTheme.css || '', cssTheme.appearance === 'dark' ? 'dark' : 'light')
+      );
     });
     return map;
-  }, [themes, currentTheme]);
+  }, [themes]);
 
-  // Virtual "Follow System" card, third in the gallery (after Light and Dark).
-  // Not part of BUILTIN_THEMES — it must never enter resolution/dedup/persistence.
-  const displayThemes = useMemo(() => {
-    if (themes.length === 0) return themes;
-    const systemCard: Theme = {
-      id: SYSTEM_THEME_ID,
-      name: t('settings.cssTheme.followSystem'),
-      appearance: 'light',
-      builtin: true,
-      created_at: 0,
-      updated_at: 0,
-    };
-    const arr = [...themes];
-    arr.splice(Math.min(2, arr.length), 0, systemCard);
-    return arr;
-  }, [themes, t]);
+  const displayThemes = useMemo(
+    () =>
+      themes.map((theme) => ({
+        ...theme,
+        name:
+          theme.id === LIGHT_THEME_ID
+            ? t('settings.backgroundAppearance.white')
+            : theme.id === DARK_THEME_ID
+              ? t('settings.backgroundAppearance.black')
+              : theme.id === GLASS_THEME_ID
+                ? t('settings.backgroundAppearance.glass')
+                : theme.name,
+      })),
+    [themes, t]
+  );
 
   // 加载主题列表 / Load theme list
   useEffect(() => {
@@ -323,7 +333,7 @@ const CssThemeSettings: React.FC = () => {
    * 选择主题 / Select theme
    */
   const handleSelectTheme = useCallback(
-    async (theme: Theme) => {
+    async (theme: Pick<Theme, 'id' | 'name'>) => {
       try {
         await selectTheme(theme.id);
         Message.success(t('settings.cssTheme.applied', { name: theme.name }));
@@ -345,7 +355,7 @@ const CssThemeSettings: React.FC = () => {
   /**
    * 打开编辑主题弹窗 / Open edit theme modal
    */
-  const handleEditTheme = useCallback((theme: Theme, e: React.MouseEvent) => {
+  const handleEditTheme = useCallback((theme: Theme, e: Pick<Event, 'stopPropagation'>) => {
     e.stopPropagation();
     setEditingTheme(theme);
     setModalVisible(true);
@@ -439,7 +449,7 @@ const CssThemeSettings: React.FC = () => {
     <div className='space-y-12px'>
       {/* 标题栏 / Header */}
       <div className='flex items-start md:items-center justify-between gap-8px flex-wrap'>
-        <span className='text-14px text-t-secondary leading-22px'>{t('settings.cssTheme.selectOrCustomize')}</span>
+        <span className='text-14px text-t-secondary leading-22px'>{t('settings.backgroundAppearance.hint')}</span>
         <Button type='primary' size='small' className='!h-32px !rounded-8px !px-14px !m-0' onClick={handleAddTheme}>
           {t('settings.cssTheme.addManually')}
         </Button>
@@ -447,14 +457,14 @@ const CssThemeSettings: React.FC = () => {
 
       {/* 主题卡片列表 / Theme card list.
           Fixed-width cards that wrap: a full row packs several cards, while a
-          short list (e.g. just Light/Dark/Follow System) stays at its natural
+          short list (e.g. White/Black/Frosted Glass) stays at its natural
           size and leaves the trailing space empty instead of stretching each
           card across the whole row. */}
       <div className='flex flex-wrap gap-12px'>
         {displayThemes.map((theme) => {
           const previewPalette =
             themePreviewPalettes.get(theme.id) ||
-            fallbackThemePreviewPaletteByMode[currentTheme === 'dark' ? 'dark' : 'light'];
+            fallbackThemePreviewPaletteByMode[theme.appearance === 'dark' ? 'dark' : 'light'];
           const cardStyle = theme.cover
             ? {
                 backgroundImage: `url(${theme.cover})`,
@@ -467,44 +477,57 @@ const CssThemeSettings: React.FC = () => {
           return (
             <div
               key={theme.id}
-              data-testid={`theme-card-${theme.id}`}
-              data-active={activeThemeId === theme.id}
-              className={`relative cursor-pointer rounded-12px overflow-hidden border-2 transition-all duration-200 h-112px w-200px flex-shrink-0 ${activeThemeId === theme.id ? 'border-[var(--color-primary)]' : 'border-transparent hover:border-border-2'}`}
-              style={cardStyle}
-              onClick={() => handleSelectTheme(theme)}
+              className='relative'
               onMouseEnter={() => setHoveredThemeId(theme.id)}
               onMouseLeave={() => setHoveredThemeId(null)}
+              onFocus={() => setHoveredThemeId(theme.id)}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) setHoveredThemeId(null);
+              }}
             >
-              {theme.id === SYSTEM_THEME_ID ? (
-                <SystemThemePreview />
-              ) : (
-                !theme.cover && <ThemeLayoutPreview palette={previewPalette} />
-              )}
-
-              {/* 底部渐变遮罩与名称、编辑按钮 / Bottom gradient overlay with name and edit button */}
-              <div className='absolute bottom-0 start-0 end-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-between p-8px'>
-                <span className='text-13px text-white truncate flex-1'>{theme.name}</span>
-                {/* 编辑按钮（仅用户主题） / Edit button (user themes only) */}
-                {hoveredThemeId === theme.id && !theme.builtin && (
-                  <div
-                    className='p-4px rounded-6px bg-white/20 cursor-pointer hover:bg-white/40 transition-colors ms-8px'
-                    onClick={(e) => handleEditTheme(theme, e)}
-                  >
-                    <EditTwo theme='outline' size='16' fill='#fff' />
-                  </div>
+              <Button
+                type='text'
+                data-testid={`theme-card-${theme.id}`}
+                data-active={activeThemeId === theme.id}
+                aria-label={theme.name}
+                aria-pressed={activeThemeId === theme.id}
+                className={`relative !p-0 !rounded-12px overflow-hidden !border-2 transition-all duration-200 !h-112px !w-200px flex-shrink-0 ${activeThemeId === theme.id ? '!border-[var(--color-primary)]' : '!border-transparent hover:!border-border-2'}`}
+                style={cardStyle}
+                onClick={() => void handleSelectTheme(theme)}
+              >
+                {!theme.cover && <ThemeLayoutPreview palette={previewPalette} frosted={theme.id === GLASS_THEME_ID} />}
+                <span className='absolute bottom-0 start-0 end-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent flex items-end p-8px'>
+                  <span className='text-13px text-white truncate flex-1 text-start'>{theme.name}</span>
+                </span>
+                {activeThemeId === theme.id && (
+                  <span className='absolute top-8px end-8px' aria-hidden='true'>
+                    <CheckOne theme='filled' size='20' fill='var(--color-primary)' />
+                  </span>
                 )}
-              </div>
-
-              {/* 选中标记 / Selected indicator */}
-              {activeThemeId === theme.id && (
-                <div className='absolute top-8px end-8px'>
-                  <CheckOne theme='filled' size='20' fill='var(--color-primary)' />
-                </div>
+              </Button>
+              {hoveredThemeId === theme.id && !theme.builtin && (
+                <Button
+                  type='text'
+                  size='mini'
+                  className='!absolute bottom-8px end-8px !rounded-6px !bg-white/20 hover:!bg-white/40'
+                  aria-label={t('common.edit')}
+                  icon={<EditTwo size={16} fill='currentColor' />}
+                  onClick={(event) => handleEditTheme(theme, event)}
+                />
               )}
             </div>
           );
         })}
       </div>
+
+      <Button
+        type={activeThemeId === SYSTEM_THEME_ID ? 'secondary' : 'text'}
+        size='small'
+        aria-pressed={activeThemeId === SYSTEM_THEME_ID}
+        onClick={() => void handleSelectTheme({ id: SYSTEM_THEME_ID, name: t('settings.cssTheme.followSystem') })}
+      >
+        {t('settings.cssTheme.followSystem')}
+      </Button>
 
       {/* 主题编辑弹窗 / Theme edit modal */}
       <CssThemeModal
